@@ -170,3 +170,81 @@ jobs:
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
+
+  release:
+    name: Release Binaries
+    runs-on: ubuntu-latest
+    needs: [test, lint, build]
+    # Only run on version tags
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+
+    - name: Install cross-compile dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-aarch64-linux-gnu
+
+    - name: Get version
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+    - name: Build binaries
+      run: |
+        mkdir -p dist
+        
+        # Linux amd64 (with CGO for SQLite)
+        CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s -X main.Version=${{ steps.version.outputs.VERSION }}" -o dist/mimir-linux-amd64 cmd/server/main.go
+        
+        # Linux arm64 (with CGO for SQLite)
+        CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CC=aarch64-linux-gnu-gcc go build -ldflags="-w -s -X main.Version=${{ steps.version.outputs.VERSION }}" -o dist/mimir-linux-arm64 cmd/server/main.go
+        
+        # macOS amd64 (CGO disabled - use Docker for SQLite support)
+        CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags="-w -s -X main.Version=${{ steps.version.outputs.VERSION }}" -o dist/mimir-darwin-amd64 cmd/server/main.go
+        
+        # macOS arm64 / Apple Silicon (CGO disabled - use Docker for SQLite support)
+        CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags="-w -s -X main.Version=${{ steps.version.outputs.VERSION }}" -o dist/mimir-darwin-arm64 cmd/server/main.go
+        
+        # Windows amd64 (CGO disabled - use Docker for SQLite support)
+        CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="-w -s -X main.Version=${{ steps.version.outputs.VERSION }}" -o dist/mimir-windows-amd64.exe cmd/server/main.go
+
+    - name: Create archives
+      run: |
+        cd dist
+        
+        # Create tar.gz for Linux and macOS
+        for f in mimir-linux-* mimir-darwin-*; do
+          if [ -f "$f" ]; then
+            tar -czvf "${f}.tar.gz" "$f"
+            rm "$f"
+          fi
+        done
+        
+        # Create zip for Windows
+        for f in mimir-windows-*.exe; do
+          if [ -f "$f" ]; then
+            zip "${f%.exe}.zip" "$f"
+            rm "$f"
+          fi
+        done
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          dist/*.tar.gz
+          dist/*.zip
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
