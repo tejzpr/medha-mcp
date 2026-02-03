@@ -8,6 +8,7 @@
   <a href="https://go.dev/"><img src="https://img.shields.io/badge/Go-1.23+-00ADD8?style=flat&logo=go" alt="Go Version"></a>
   <a href="https://opensource.org/licenses/MPL-2.0"><img src="https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg" alt="License: MPL 2.0"></a>
   <a href="https://modelcontextprotocol.io/"><img src="https://img.shields.io/badge/MCP-Compatible-blue" alt="MCP"></a>
+  <a href="https://hub.docker.com/r/tejzpr/mimir-mcp"><img src="https://img.shields.io/docker/v/tejzpr/mimir-mcp?label=Docker&logo=docker" alt="Docker Hub"></a>
 </p>
 
 <p align="center"><strong>Git-backed AI Memory System</strong></p>
