@@ -14,14 +14,14 @@ import (
 	"strconv"
 
 	mcpserver "github.com/mark3labs/mcp-go/server"
-	"github.com/tejzpr/mimir-mcp/internal/auth"
-	"github.com/tejzpr/mimir-mcp/internal/config"
-	"github.com/tejzpr/mimir-mcp/internal/crypto"
-	"github.com/tejzpr/mimir-mcp/internal/database"
-	"github.com/tejzpr/mimir-mcp/internal/git"
-	"github.com/tejzpr/mimir-mcp/internal/rebuild"
-	"github.com/tejzpr/mimir-mcp/internal/server"
-	"github.com/tejzpr/mimir-mcp/pkg/scheduler"
+	"github.com/tejzpr/medha-mcp/internal/auth"
+	"github.com/tejzpr/medha-mcp/internal/config"
+	"github.com/tejzpr/medha-mcp/internal/crypto"
+	"github.com/tejzpr/medha-mcp/internal/database"
+	"github.com/tejzpr/medha-mcp/internal/git"
+	"github.com/tejzpr/medha-mcp/internal/rebuild"
+	"github.com/tejzpr/medha-mcp/internal/server"
+	"github.com/tejzpr/medha-mcp/pkg/scheduler"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -42,7 +42,7 @@ func main() {
 	port := flag.Int("port", 0, "Server port (HTTP mode only)")
 
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Mimir MCP Server\n\n")
+		fmt.Fprintf(os.Stderr, "Medha MCP Server\n\n")
 		fmt.Fprintf(os.Stderr, "Usage: %s [options]\n\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "Server Mode:\n")
 		fmt.Fprintf(os.Stderr, "  %s                          Start MCP server (stdio) using system user (whoami)\n", os.Args[0])
@@ -76,9 +76,9 @@ func main() {
 	}
 
 	if *rebuildDB {
-		log.Println("Starting Mimir database rebuild...")
+		log.Println("Starting Medha database rebuild...")
 	} else {
-		log.Println("Starting Mimir MCP Server...")
+		log.Println("Starting Medha MCP Server...")
 	}
 
 	// Load configuration
@@ -101,7 +101,7 @@ func main() {
 			log.Println("Using built-in defaults")
 			cfg = config.DefaultConfig()
 		} else {
-			log.Printf("Loaded configuration from ~/.mimir/configs/config.json")
+			log.Printf("Loaded configuration from ~/.medha/configs/config.json")
 		}
 	}
 
@@ -183,28 +183,28 @@ func runRebuildMode(cfg *config.Config, db *gorm.DB, force bool) {
 	log.Printf("User authenticated: %s (ID: %d)", user.Username, user.ID)
 
 	// Find user's git repository
-	var repo database.MimirGitRepo
+	var repo database.MedhaGitRepo
 	err = db.Where("user_id = ?", user.ID).First(&repo).Error
 	if err != nil {
 		// Try to find repo on filesystem
 		homeDir, _ := os.UserHomeDir()
-		storePath := filepath.Join(homeDir, ".mimir", "store")
+		storePath := filepath.Join(homeDir, ".medha", "store")
 		expectedRepoPath := git.GetUserRepositoryPath(storePath, user.Username)
 
 		if _, statErr := os.Stat(expectedRepoPath); statErr == nil {
 			// Folder exists but not in DB - create DB record
 			log.Printf("Found repository folder: %s", expectedRepoPath)
-			repo = database.MimirGitRepo{
+			repo = database.MedhaGitRepo{
 				UserID:   user.ID,
 				RepoUUID: user.Username,
-				RepoName: fmt.Sprintf("mimir-%s", user.Username),
+				RepoName: fmt.Sprintf("medha-%s", user.Username),
 				RepoPath: expectedRepoPath,
 			}
 			if err := db.Create(&repo).Error; err != nil {
 				log.Fatalf("Failed to create repository record: %v", err)
 			}
 		} else {
-			log.Fatalf("No git repository found for user. Run mimir server first to initialize the repository.")
+			log.Fatalf("No git repository found for user. Run medha server first to initialize the repository.")
 		}
 	}
 
@@ -267,25 +267,25 @@ func getOrGenerateEncryptionKey(cfg *config.Config) []byte {
 // applyEnvOverrides applies environment variable overrides to configuration
 func applyEnvOverrides(cfg *config.Config) {
 	// Database type
-	if dbType := getEnv("DB_TYPE", "MIMIR_DB_TYPE"); dbType != "" {
+	if dbType := getEnv("DB_TYPE", "MEDHA_DB_TYPE"); dbType != "" {
 		cfg.Database.Type = dbType
 		log.Printf("Database type from ENV: %s", dbType)
 	}
 
 	// Database path (SQLite)
-	if dbPath := getEnv("DB_PATH", "MIMIR_DB_PATH"); dbPath != "" {
+	if dbPath := getEnv("DB_PATH", "MEDHA_DB_PATH"); dbPath != "" {
 		cfg.Database.SQLitePath = dbPath
 		log.Printf("Database path from ENV")
 	}
 
 	// Database DSN (Postgres)
-	if dbDSN := getEnv("DB_DSN", "MIMIR_DB_DSN"); dbDSN != "" {
+	if dbDSN := getEnv("DB_DSN", "MEDHA_DB_DSN"); dbDSN != "" {
 		cfg.Database.PostgresDSN = dbDSN
 		log.Printf("Database DSN from ENV (hidden)")
 	}
 
 	// Server port
-	if portStr := getEnv("PORT", "MIMIR_PORT"); portStr != "" {
+	if portStr := getEnv("PORT", "MEDHA_PORT"); portStr != "" {
 		if port, err := strconv.Atoi(portStr); err == nil {
 			cfg.Server.Port = port
 			log.Printf("Port from ENV: %d", port)
@@ -293,7 +293,7 @@ func applyEnvOverrides(cfg *config.Config) {
 	}
 
 	// Encryption key
-	if key := getEnv("ENCRYPTION_KEY", "MIMIR_ENCRYPTION_KEY"); key != "" {
+	if key := getEnv("ENCRYPTION_KEY", "MEDHA_ENCRYPTION_KEY"); key != "" {
 		cfg.Security.EncryptionKey = key
 		log.Printf("Encryption key from ENV (hidden)")
 	}
@@ -358,7 +358,7 @@ func runStdioMode(cfg *config.Config, db *gorm.DB, encryptionKey []byte, useAcce
 
 	// Setup git repository for user
 	homeDir, _ := os.UserHomeDir()
-	storePath := filepath.Join(homeDir, ".mimir", "store")
+	storePath := filepath.Join(homeDir, ".medha", "store")
 
 	setupCfg := &git.SetupConfig{
 		BaseStorePath: storePath,
@@ -369,7 +369,7 @@ func runStdioMode(cfg *config.Config, db *gorm.DB, encryptionKey []byte, useAcce
 	}
 
 	// Check if repo already exists (check both database and filesystem)
-	var existingRepo database.MimirGitRepo
+	var existingRepo database.MedhaGitRepo
 	expectedRepoPath := git.GetUserRepositoryPath(storePath, user.Username)
 	
 	err = db.Where("user_id = ?", user.ID).First(&existingRepo).Error
@@ -378,10 +378,10 @@ func runStdioMode(cfg *config.Config, db *gorm.DB, encryptionKey []byte, useAcce
 		if _, statErr := os.Stat(expectedRepoPath); statErr == nil {
 			// Folder exists but not in DB - recover by adding to DB
 			log.Printf("Found existing repository folder, recovering: %s", expectedRepoPath)
-			repo := &database.MimirGitRepo{
+			repo := &database.MedhaGitRepo{
 				UserID:   user.ID,
 				RepoUUID: user.Username, // Use username as the identifier
-				RepoName: fmt.Sprintf("mimir-%s", user.Username),
+				RepoName: fmt.Sprintf("medha-%s", user.Username),
 				RepoPath: expectedRepoPath,
 			}
 			db.Create(repo)
@@ -394,7 +394,7 @@ func runStdioMode(cfg *config.Config, db *gorm.DB, encryptionKey []byte, useAcce
 			}
 
 			// Store repo in database
-			repo := &database.MimirGitRepo{
+			repo := &database.MedhaGitRepo{
 				UserID:   user.ID,
 				RepoUUID: result.RepoID,
 				RepoName: result.RepoName,
@@ -408,7 +408,7 @@ func runStdioMode(cfg *config.Config, db *gorm.DB, encryptionKey []byte, useAcce
 	}
 
 	// Get repo path
-	var repo database.MimirGitRepo
+	var repo database.MedhaGitRepo
 	err = db.Where("user_id = ?", user.ID).First(&repo).Error
 	if err != nil {
 		log.Fatalf("Failed to get repository: %v", err)

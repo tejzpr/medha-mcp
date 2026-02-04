@@ -83,13 +83,13 @@ func TestMigrate(t *testing.T) {
 
 	// Verify tables exist
 	tables := []string{
-		"mimir_users",
-		"mimir_auth_tokens",
-		"mimir_git_repos",
-		"mimir_memories",
-		"mimir_memory_associations",
-		"mimir_tags",
-		"mimir_memory_tags",
+		"medha_users",
+		"medha_auth_tokens",
+		"medha_git_repos",
+		"medha_memories",
+		"medha_memory_associations",
+		"medha_tags",
+		"medha_memory_tags",
 	}
 
 	for _, table := range tables {
@@ -103,32 +103,32 @@ func TestModels_TableNames(t *testing.T) {
 		model     interface{}
 		tableName string
 	}{
-		{MimirUser{}, "mimir_users"},
-		{MimirAuthToken{}, "mimir_auth_tokens"},
-		{MimirGitRepo{}, "mimir_git_repos"},
-		{MimirMemory{}, "mimir_memories"},
-		{MimirMemoryAssociation{}, "mimir_memory_associations"},
-		{MimirTag{}, "mimir_tags"},
-		{MimirMemoryTag{}, "mimir_memory_tags"},
+		{MedhaUser{}, "medha_users"},
+		{MedhaAuthToken{}, "medha_auth_tokens"},
+		{MedhaGitRepo{}, "medha_git_repos"},
+		{MedhaMemory{}, "medha_memories"},
+		{MedhaMemoryAssociation{}, "medha_memory_associations"},
+		{MedhaTag{}, "medha_tags"},
+		{MedhaMemoryTag{}, "medha_memory_tags"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.tableName, func(t *testing.T) {
 			var actualName string
 			switch m := tt.model.(type) {
-			case MimirUser:
+			case MedhaUser:
 				actualName = m.TableName()
-			case MimirAuthToken:
+			case MedhaAuthToken:
 				actualName = m.TableName()
-			case MimirGitRepo:
+			case MedhaGitRepo:
 				actualName = m.TableName()
-			case MimirMemory:
+			case MedhaMemory:
 				actualName = m.TableName()
-			case MimirMemoryAssociation:
+			case MedhaMemoryAssociation:
 				actualName = m.TableName()
-			case MimirTag:
+			case MedhaTag:
 				actualName = m.TableName()
-			case MimirMemoryTag:
+			case MedhaMemoryTag:
 				actualName = m.TableName()
 			}
 			assert.Equal(t, tt.tableName, actualName)
@@ -209,7 +209,7 @@ func TestDropAllTables(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify tables don't exist
-	hasTable := db.Migrator().HasTable("mimir_users")
+	hasTable := db.Migrator().HasTable("medha_users")
 	assert.False(t, hasTable)
 }
 
@@ -231,7 +231,7 @@ func TestCRUD_User(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create
-	user := &MimirUser{
+	user := &MedhaUser{
 		Username: "testuser",
 		Email:    "test@example.com",
 	}
@@ -240,7 +240,7 @@ func TestCRUD_User(t *testing.T) {
 	assert.NotZero(t, user.ID)
 
 	// Read
-	var foundUser MimirUser
+	var foundUser MedhaUser
 	result = db.First(&foundUser, "username = ?", "testuser")
 	require.NoError(t, result.Error)
 	assert.Equal(t, "testuser", foundUser.Username)
@@ -250,7 +250,7 @@ func TestCRUD_User(t *testing.T) {
 	result = db.Model(&foundUser).Update("email", "updated@example.com")
 	require.NoError(t, result.Error)
 
-	var updatedUser MimirUser
+	var updatedUser MedhaUser
 	db.First(&updatedUser, foundUser.ID)
 	assert.Equal(t, "updated@example.com", updatedUser.Email)
 
@@ -277,11 +277,11 @@ func TestCRUD_Memory(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create user first
-	user := &MimirUser{Username: "testuser"}
+	user := &MedhaUser{Username: "testuser"}
 	db.Create(user)
 
 	// Create repo
-	repo := &MimirGitRepo{
+	repo := &MedhaGitRepo{
 		UserID:   user.ID,
 		RepoUUID: "test-uuid",
 		RepoName: "test-repo",
@@ -290,7 +290,7 @@ func TestCRUD_Memory(t *testing.T) {
 	db.Create(repo)
 
 	// Create memory
-	memory := &MimirMemory{
+	memory := &MedhaMemory{
 		UserID:   user.ID,
 		RepoID:   repo.ID,
 		Slug:     "test-memory-2024-01-01",
@@ -302,7 +302,7 @@ func TestCRUD_Memory(t *testing.T) {
 	assert.NotZero(t, memory.ID)
 
 	// Read with slug
-	var foundMemory MimirMemory
+	var foundMemory MedhaMemory
 	result = db.First(&foundMemory, "slug = ?", "test-memory-2024-01-01")
 	require.NoError(t, result.Error)
 	assert.Equal(t, "Test Memory", foundMemory.Title)
@@ -326,10 +326,10 @@ func TestCRUD_Association(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create user and repo
-	user := &MimirUser{Username: "testuser"}
+	user := &MedhaUser{Username: "testuser"}
 	db.Create(user)
 
-	repo := &MimirGitRepo{
+	repo := &MedhaGitRepo{
 		UserID:   user.ID,
 		RepoUUID: "test-uuid",
 		RepoName: "test-repo",
@@ -338,7 +338,7 @@ func TestCRUD_Association(t *testing.T) {
 	db.Create(repo)
 
 	// Create two memories
-	memory1 := &MimirMemory{
+	memory1 := &MedhaMemory{
 		UserID:   user.ID,
 		RepoID:   repo.ID,
 		Slug:     "memory-1",
@@ -347,7 +347,7 @@ func TestCRUD_Association(t *testing.T) {
 	}
 	db.Create(memory1)
 
-	memory2 := &MimirMemory{
+	memory2 := &MedhaMemory{
 		UserID:   user.ID,
 		RepoID:   repo.ID,
 		Slug:     "memory-2",
@@ -357,7 +357,7 @@ func TestCRUD_Association(t *testing.T) {
 	db.Create(memory2)
 
 	// Create association
-	assoc := &MimirMemoryAssociation{
+	assoc := &MedhaMemoryAssociation{
 		SourceMemoryID:  memory1.ID,
 		TargetMemoryID:  memory2.ID,
 		AssociationType: AssociationTypeRelatedTo,
@@ -367,7 +367,7 @@ func TestCRUD_Association(t *testing.T) {
 	require.NoError(t, result.Error)
 
 	// Query associations
-	var associations []MimirMemoryAssociation
+	var associations []MedhaMemoryAssociation
 	result = db.Where("source_memory_id = ?", memory1.ID).Find(&associations)
 	require.NoError(t, result.Error)
 	assert.Equal(t, 1, len(associations))

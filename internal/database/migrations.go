@@ -13,14 +13,14 @@ import (
 // AllModels returns all database models for migration
 func AllModels() []interface{} {
 	return []interface{}{
-		&MimirUser{},
-		&MimirAuthToken{},
-		&MimirGitRepo{},
-		&MimirMemory{},
-		&MimirMemoryAssociation{},
-		&MimirTag{},
-		&MimirMemoryTag{},
-		&MimirAnnotation{},
+		&MedhaUser{},
+		&MedhaAuthToken{},
+		&MedhaGitRepo{},
+		&MedhaMemory{},
+		&MedhaMemoryAssociation{},
+		&MedhaTag{},
+		&MedhaMemoryTag{},
+		&MedhaAnnotation{},
 	}
 }
 
@@ -36,14 +36,14 @@ func Migrate(db *gorm.DB) error {
 func DropAllTables(db *gorm.DB) error {
 	// Drop in reverse order to avoid foreign key constraints
 	models := []interface{}{
-		&MimirAnnotation{},
-		&MimirMemoryTag{},
-		&MimirTag{},
-		&MimirMemoryAssociation{},
-		&MimirMemory{},
-		&MimirGitRepo{},
-		&MimirAuthToken{},
-		&MimirUser{},
+		&MedhaAnnotation{},
+		&MedhaMemoryTag{},
+		&MedhaTag{},
+		&MedhaMemoryAssociation{},
+		&MedhaMemory{},
+		&MedhaGitRepo{},
+		&MedhaAuthToken{},
+		&MedhaUser{},
 	}
 
 	for _, model := range models {
@@ -64,48 +64,48 @@ func CreateIndexes(db *gorm.DB) error {
 		name    string
 	}{
 		{
-			table:   "mimir_memories",
+			table:   "medha_memories",
 			columns: []string{"user_id", "created_at"},
 			name:    "idx_memories_user_created",
 		},
 		{
-			table:   "mimir_memories",
+			table:   "medha_memories",
 			columns: []string{"user_id", "updated_at"},
 			name:    "idx_memories_user_updated",
 		},
 		{
-			table:   "mimir_memory_associations",
+			table:   "medha_memory_associations",
 			columns: []string{"source_memory_id", "association_type"},
 			name:    "idx_associations_source_type",
 		},
 		{
-			table:   "mimir_memory_associations",
+			table:   "medha_memory_associations",
 			columns: []string{"target_memory_id", "association_type"},
 			name:    "idx_associations_target_type",
 		},
 		{
-			table:   "mimir_auth_tokens",
+			table:   "medha_auth_tokens",
 			columns: []string{"user_id", "expires_at"},
 			name:    "idx_tokens_user_expires",
 		},
 		// Human-aligned memory indexes
 		{
-			table:   "mimir_memories",
+			table:   "medha_memories",
 			columns: []string{"user_id", "last_accessed_at"},
 			name:    "idx_memories_user_accessed",
 		},
 		{
-			table:   "mimir_memories",
+			table:   "medha_memories",
 			columns: []string{"user_id", "access_count"},
 			name:    "idx_memories_user_access_count",
 		},
 		{
-			table:   "mimir_memories",
+			table:   "medha_memories",
 			columns: []string{"user_id", "superseded_by"},
 			name:    "idx_memories_user_superseded",
 		},
 		{
-			table:   "mimir_annotations",
+			table:   "medha_annotations",
 			columns: []string{"memory_id", "type"},
 			name:    "idx_annotations_memory_type",
 		},

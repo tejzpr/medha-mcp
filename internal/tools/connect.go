@@ -11,15 +11,15 @@ import (
 	"time"
 
 	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/tejzpr/mimir-mcp/internal/database"
-	"github.com/tejzpr/mimir-mcp/internal/git"
-	"github.com/tejzpr/mimir-mcp/internal/memory"
+	"github.com/tejzpr/medha-mcp/internal/database"
+	"github.com/tejzpr/medha-mcp/internal/git"
+	"github.com/tejzpr/medha-mcp/internal/memory"
 	"gorm.io/gorm"
 )
 
-// NewConnectTool creates the mimir_connect tool definition
+// NewConnectTool creates the medha_connect tool definition
 func NewConnectTool() mcp.Tool {
-	return mcp.NewTool("mimir_connect",
+	return mcp.NewTool("medha_connect",
 		mcp.WithDescription("Link or unlink related memories. Creates connections in the knowledge graph so related information can be found together."),
 		mcp.WithString("from",
 			mcp.Required(),
@@ -41,7 +41,7 @@ func NewConnectTool() mcp.Tool {
 	)
 }
 
-// ConnectHandler handles the mimir_connect tool
+// ConnectHandler handles the medha_connect tool
 func ConnectHandler(ctx *ToolContext, userID uint) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(c context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		fromSlug, err := request.RequireString("from")
@@ -65,7 +65,7 @@ func ConnectHandler(ctx *ToolContext, userID uint) func(context.Context, mcp.Cal
 		}
 
 		// Get source memory
-		var fromMem database.MimirMemory
+		var fromMem database.MedhaMemory
 		if err := ctx.DB.Where("slug = ? AND user_id = ?", fromSlug, userID).First(&fromMem).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
 				return mcp.NewToolResultError(fmt.Sprintf("memory not found: %s", fromSlug)), nil
@@ -74,7 +74,7 @@ func ConnectHandler(ctx *ToolContext, userID uint) func(context.Context, mcp.Cal
 		}
 
 		// Get target memory
-		var toMem database.MimirMemory
+		var toMem database.MedhaMemory
 		if err := ctx.DB.Where("slug = ? AND user_id = ?", toSlug, userID).First(&toMem).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
 				return mcp.NewToolResultError(fmt.Sprintf("memory not found: %s", toSlug)), nil
@@ -91,9 +91,9 @@ func ConnectHandler(ctx *ToolContext, userID uint) func(context.Context, mcp.Cal
 }
 
 // handleConnect creates a connection between memories
-func handleConnect(ctx *ToolContext, userID uint, fromMem, toMem *database.MimirMemory, assocType string, strength float64) (*mcp.CallToolResult, error) {
+func handleConnect(ctx *ToolContext, userID uint, fromMem, toMem *database.MedhaMemory, assocType string, strength float64) (*mcp.CallToolResult, error) {
 	// Check if association already exists
-	var existing database.MimirMemoryAssociation
+	var existing database.MedhaMemoryAssociation
 	err := ctx.DB.Where("source_memory_id = ? AND target_memory_id = ?", fromMem.ID, toMem.ID).First(&existing).Error
 	if err == nil {
 		// Association exists - update it
@@ -106,7 +106,7 @@ func handleConnect(ctx *ToolContext, userID uint, fromMem, toMem *database.Mimir
 	}
 
 	// Create new association
-	association := &database.MimirMemoryAssociation{
+	association := &database.MedhaMemoryAssociation{
 		SourceMemoryID:  fromMem.ID,
 		TargetMemoryID:  toMem.ID,
 		AssociationType: assocType,
@@ -118,7 +118,7 @@ func handleConnect(ctx *ToolContext, userID uint, fromMem, toMem *database.Mimir
 
 	// Create reverse association (bidirectional) for non-directional types
 	if !isDirectionalType(assocType) {
-		reverseAssoc := &database.MimirMemoryAssociation{
+		reverseAssoc := &database.MedhaMemoryAssociation{
 			SourceMemoryID:  toMem.ID,
 			TargetMemoryID:  fromMem.ID,
 			AssociationType: assocType,
@@ -180,12 +180,12 @@ func handleConnect(ctx *ToolContext, userID uint, fromMem, toMem *database.Mimir
 }
 
 // handleDisconnect removes a connection between memories
-func handleDisconnect(ctx *ToolContext, fromMem, toMem *database.MimirMemory) (*mcp.CallToolResult, error) {
+func handleDisconnect(ctx *ToolContext, fromMem, toMem *database.MedhaMemory) (*mcp.CallToolResult, error) {
 	// Delete forward association
-	result := ctx.DB.Where("source_memory_id = ? AND target_memory_id = ?", fromMem.ID, toMem.ID).Delete(&database.MimirMemoryAssociation{})
+	result := ctx.DB.Where("source_memory_id = ? AND target_memory_id = ?", fromMem.ID, toMem.ID).Delete(&database.MedhaMemoryAssociation{})
 	
 	// Delete reverse association
-	ctx.DB.Where("source_memory_id = ? AND target_memory_id = ?", toMem.ID, fromMem.ID).Delete(&database.MimirMemoryAssociation{})
+	ctx.DB.Where("source_memory_id = ? AND target_memory_id = ?", toMem.ID, fromMem.ID).Delete(&database.MedhaMemoryAssociation{})
 
 	if result.RowsAffected == 0 {
 		return mcp.NewToolResultError(fmt.Sprintf("no connection found between '%s' and '%s'", fromMem.Slug, toMem.Slug)), nil

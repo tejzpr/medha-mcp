@@ -13,7 +13,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tejzpr/mimir-mcp/internal/database"
+	"github.com/tejzpr/medha-mcp/internal/database"
 	"gorm.io/gorm/logger"
 )
 
@@ -34,7 +34,7 @@ func setupMiddlewareTest(t *testing.T) (*Middleware, *TokenManager, uint) {
 	require.NoError(t, err)
 
 	// Create test user
-	user := &database.MimirUser{
+	user := &database.MedhaUser{
 		Username: "testuser",
 		Email:    "test@example.com",
 	}

@@ -12,15 +12,15 @@ import (
 	"time"
 
 	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/tejzpr/mimir-mcp/internal/database"
-	"github.com/tejzpr/mimir-mcp/internal/git"
-	"github.com/tejzpr/mimir-mcp/internal/memory"
+	"github.com/tejzpr/medha-mcp/internal/database"
+	"github.com/tejzpr/medha-mcp/internal/git"
+	"github.com/tejzpr/medha-mcp/internal/memory"
 	"gorm.io/gorm"
 )
 
-// NewRememberTool creates the mimir_remember tool definition
+// NewRememberTool creates the medha_remember tool definition
 func NewRememberTool() mcp.Tool {
-	return mcp.NewTool("mimir_remember",
+	return mcp.NewTool("medha_remember",
 		mcp.WithDescription("Store information in memory. Use for new information OR updating existing information. If updating, the old version is preserved in history. If this replaces/supersedes an old memory, specify 'replaces' to link them properly."),
 		mcp.WithString("title",
 			mcp.Required(),
@@ -58,7 +58,7 @@ type Connection struct {
 	Strength     float64 `json:"strength,omitempty"`
 }
 
-// RememberHandler handles the mimir_remember tool
+// RememberHandler handles the medha_remember tool
 func RememberHandler(ctx *ToolContext, userID uint) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(c context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Parse required fields
@@ -81,7 +81,7 @@ func RememberHandler(ctx *ToolContext, userID uint) func(context.Context, mcp.Ca
 		connections := parseConnections(request)
 
 		// Get user's repo
-		var repo database.MimirGitRepo
+		var repo database.MedhaGitRepo
 		err = ctx.DB.Where("user_id = ?", userID).First(&repo).Error
 		if err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("failed to get user repository: %v", err)), nil
@@ -96,7 +96,7 @@ func RememberHandler(ctx *ToolContext, userID uint) func(context.Context, mcp.Ca
 		// Determine if this is an update or create
 		if slug != "" {
 			// Try to find existing memory
-			var existingMem database.MimirMemory
+			var existingMem database.MedhaMemory
 			err = ctx.DB.Where("slug = ? AND user_id = ?", slug, userID).First(&existingMem).Error
 			if err == nil {
 				// Memory exists - update it
@@ -128,7 +128,7 @@ func RememberHandler(ctx *ToolContext, userID uint) func(context.Context, mcp.Ca
 			}
 
 			// Check if generated slug already exists
-			var existingMem database.MimirMemory
+			var existingMem database.MedhaMemory
 			err = ctx.DB.Where("slug = ?", slug).First(&existingMem).Error
 			if err == nil {
 				return mcp.NewToolResultError(fmt.Sprintf("memory with slug '%s' already exists. Provide a custom 'slug' parameter to update or create with different ID.", slug)), nil
@@ -218,7 +218,7 @@ func handleCreate(ctx *ToolContext, userID uint, repoID uint, slug, title, conte
 	}
 
 	// Store in database
-	dbMem := &database.MimirMemory{
+	dbMem := &database.MedhaMemory{
 		UserID:         userID,
 		RepoID:         repoID,
 		Slug:           slug,
@@ -238,10 +238,10 @@ func handleCreate(ctx *ToolContext, userID uint, repoID uint, slug, title, conte
 }
 
 // handleUpdate updates an existing memory
-func handleUpdate(ctx *ToolContext, userID uint, dbMem *database.MimirMemory, title, content string, tags []string, repoPath string) (*mcp.CallToolResult, error) {
+func handleUpdate(ctx *ToolContext, userID uint, dbMem *database.MedhaMemory, title, content string, tags []string, repoPath string) (*mcp.CallToolResult, error) {
 	// Check if memory is deleted
 	if dbMem.DeletedAt.Valid {
-		return mcp.NewToolResultError(fmt.Sprintf("memory '%s' has been archived. Use mimir_restore first.", dbMem.Slug)), nil
+		return mcp.NewToolResultError(fmt.Sprintf("memory '%s' has been archived. Use medha_restore first.", dbMem.Slug)), nil
 	}
 
 	// Read current memory
@@ -267,7 +267,7 @@ func handleUpdate(ctx *ToolContext, userID uint, dbMem *database.MimirMemory, ti
 	// Update tags if provided
 	if len(tags) > 0 {
 		mem.Tags = tags
-		ctx.DB.Where("memory_id = ?", dbMem.ID).Delete(&database.MimirMemoryTag{})
+		ctx.DB.Where("memory_id = ?", dbMem.ID).Delete(&database.MedhaMemoryTag{})
 		storeTags(ctx, dbMem.ID, tags)
 	}
 
@@ -305,7 +305,7 @@ func handleUpdate(ctx *ToolContext, userID uint, dbMem *database.MimirMemory, ti
 // handleAnnotation adds an annotation to a memory - stored in git frontmatter
 func handleAnnotation(ctx *ToolContext, userID uint, slug, note, repoPath string) (*mcp.CallToolResult, error) {
 	// Get memory from DB for file path
-	var dbMem database.MimirMemory
+	var dbMem database.MedhaMemory
 	if err := ctx.DB.Where("slug = ? AND user_id = ?", slug, userID).First(&dbMem).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return mcp.NewToolResultError(fmt.Sprintf("memory not found: %s", slug)), nil
@@ -370,13 +370,13 @@ func handleAnnotation(ctx *ToolContext, userID uint, slug, note, repoPath string
 // handleSupersession marks an old memory as superseded by a new one
 func handleSupersession(ctx *ToolContext, userID uint, newSlug, oldSlug, repoPath string) error {
 	// Get old memory
-	var oldMem database.MimirMemory
+	var oldMem database.MedhaMemory
 	if err := ctx.DB.Where("slug = ? AND user_id = ?", oldSlug, userID).First(&oldMem).Error; err != nil {
 		return fmt.Errorf("old memory not found: %s", oldSlug)
 	}
 
 	// Get new memory
-	var newMem database.MimirMemory
+	var newMem database.MedhaMemory
 	if err := ctx.DB.Where("slug = ? AND user_id = ?", newSlug, userID).First(&newMem).Error; err != nil {
 		return fmt.Errorf("new memory not found: %s", newSlug)
 	}
@@ -414,7 +414,7 @@ func handleSupersession(ctx *ToolContext, userID uint, newSlug, oldSlug, repoPat
 	}
 
 	// Create association
-	association := &database.MimirMemoryAssociation{
+	association := &database.MedhaMemoryAssociation{
 		SourceMemoryID:  newMem.ID,
 		TargetMemoryID:  oldMem.ID,
 		AssociationType: database.AssociationTypeSupersedes,
@@ -438,12 +438,12 @@ func handleSupersession(ctx *ToolContext, userID uint, newSlug, oldSlug, repoPat
 // storeTags stores tags for a memory
 func storeTags(ctx *ToolContext, memoryID uint, tags []string) {
 	for _, tagName := range tags {
-		var tag database.MimirTag
-		ctx.DB.Where("name = ?", tagName).FirstOrCreate(&tag, database.MimirTag{
+		var tag database.MedhaTag
+		ctx.DB.Where("name = ?", tagName).FirstOrCreate(&tag, database.MedhaTag{
 			Name: tagName,
 		})
 
-		memTag := &database.MimirMemoryTag{
+		memTag := &database.MedhaMemoryTag{
 			MemoryID: memoryID,
 			TagID:    tag.ID,
 		}
@@ -503,14 +503,14 @@ func handleConnections(ctx *ToolContext, userID uint, sourceSlug string, connect
 	var results []string
 
 	// Get source memory
-	var sourceMem database.MimirMemory
+	var sourceMem database.MedhaMemory
 	if err := ctx.DB.Where("slug = ? AND user_id = ?", sourceSlug, userID).First(&sourceMem).Error; err != nil {
 		return fmt.Sprintf("Warning: Could not find source memory for connections: %v", err)
 	}
 
 	for _, conn := range connections {
 		// Get target memory
-		var targetMem database.MimirMemory
+		var targetMem database.MedhaMemory
 		if err := ctx.DB.Where("slug = ? AND user_id = ?", conn.To, userID).First(&targetMem).Error; err != nil {
 			results = append(results, fmt.Sprintf("- Connection to '%s' failed: memory not found", conn.To))
 			continue
@@ -529,7 +529,7 @@ func handleConnections(ctx *ToolContext, userID uint, sourceSlug string, connect
 		}
 
 		// Create association
-		association := &database.MimirMemoryAssociation{
+		association := &database.MedhaMemoryAssociation{
 			SourceMemoryID:  sourceMem.ID,
 			TargetMemoryID:  targetMem.ID,
 			AssociationType: assocType,
@@ -542,7 +542,7 @@ func handleConnections(ctx *ToolContext, userID uint, sourceSlug string, connect
 
 		// Create reverse for bidirectional types
 		if !isDirectionalTypeForRemember(assocType) {
-			reverseAssoc := &database.MimirMemoryAssociation{
+			reverseAssoc := &database.MedhaMemoryAssociation{
 				SourceMemoryID:  targetMem.ID,
 				TargetMemoryID:  sourceMem.ID,
 				AssociationType: assocType,

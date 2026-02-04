@@ -12,10 +12,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tejzpr/mimir-mcp/internal/database"
-	"github.com/tejzpr/mimir-mcp/internal/git"
-	"github.com/tejzpr/mimir-mcp/internal/graph"
-	"github.com/tejzpr/mimir-mcp/internal/memory"
+	"github.com/tejzpr/medha-mcp/internal/database"
+	"github.com/tejzpr/medha-mcp/internal/git"
+	"github.com/tejzpr/medha-mcp/internal/graph"
+	"github.com/tejzpr/medha-mcp/internal/memory"
 	"gorm.io/gorm/logger"
 )
 
@@ -39,13 +39,13 @@ func TestAssociationLifecycle(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create user and repo
-	user := &database.MimirUser{Username: "testuser"}
+	user := &database.MedhaUser{Username: "testuser"}
 	db.Create(user)
 
 	repo, err := git.InitRepository(repoPath)
 	require.NoError(t, err)
 
-	dbRepo := &database.MimirGitRepo{
+	dbRepo := &database.MedhaGitRepo{
 		UserID:   user.ID,
 		RepoUUID: "test-uuid",
 		RepoName: "test-repo",
@@ -54,7 +54,7 @@ func TestAssociationLifecycle(t *testing.T) {
 	db.Create(dbRepo)
 
 	// Create two memories
-	createMemory := func(slug, title string) *database.MimirMemory {
+	createMemory := func(slug, title string) *database.MedhaMemory {
 		mem := &memory.Memory{
 			ID:      slug,
 			Title:   title,
@@ -72,7 +72,7 @@ func TestAssociationLifecycle(t *testing.T) {
 		msgFormat := git.CommitMessageFormats{}
 		_ = repo.CommitFile(filePath, msgFormat.CreateMemory(slug))
 
-		dbMem := &database.MimirMemory{
+		dbMem := &database.MedhaMemory{
 			UserID:   user.ID,
 			RepoID:   dbRepo.ID,
 			Slug:     slug,

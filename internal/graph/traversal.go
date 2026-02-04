@@ -7,7 +7,7 @@ package graph
 import (
 	"fmt"
 
-	"github.com/tejzpr/mimir-mcp/internal/database"
+	"github.com/tejzpr/medha-mcp/internal/database"
 )
 
 // GraphNode represents a node in the memory graph
@@ -158,7 +158,7 @@ func (m *Manager) traverseDFS(memoryID uint, maxHops, currentDepth int, graph *G
 
 // addNodeToGraph adds a memory node to the graph
 func (m *Manager) addNodeToGraph(memoryID uint, depth int, graph *Graph) error {
-	var mem database.MimirMemory
+	var mem database.MedhaMemory
 	if err := m.db.First(&mem, memoryID).Error; err != nil {
 		return fmt.Errorf("failed to get memory: %w", err)
 	}

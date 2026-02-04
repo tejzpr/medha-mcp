@@ -11,7 +11,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tejzpr/mimir-mcp/internal/database"
+	"github.com/tejzpr/medha-mcp/internal/database"
 	"gorm.io/gorm/logger"
 )
 
@@ -40,7 +40,7 @@ func TestGenerateToken(t *testing.T) {
 	defer database.Close(db)
 
 	// Create a test user
-	user := &database.MimirUser{
+	user := &database.MedhaUser{
 		Username: "testuser",
 		Email:    "test@example.com",
 	}
@@ -62,7 +62,7 @@ func TestValidateToken_Success(t *testing.T) {
 	db, _ := database.Connect(dbCfg)
 	defer database.Close(db)
 
-	user := &database.MimirUser{Username: "testuser"}
+	user := &database.MedhaUser{Username: "testuser"}
 	db.Create(user)
 
 	tm := NewTokenManager(db, 24)
@@ -95,7 +95,7 @@ func TestValidateToken_Expired(t *testing.T) {
 	db, _ := database.Connect(dbCfg)
 	defer database.Close(db)
 
-	user := &database.MimirUser{Username: "testuser"}
+	user := &database.MedhaUser{Username: "testuser"}
 	db.Create(user)
 
 	tm := NewTokenManager(db, 24)
@@ -119,7 +119,7 @@ func TestRefreshToken_Success(t *testing.T) {
 	db, _ := database.Connect(dbCfg)
 	defer database.Close(db)
 
-	user := &database.MimirUser{Username: "testuser"}
+	user := &database.MedhaUser{Username: "testuser"}
 	db.Create(user)
 
 	tm := NewTokenManager(db, 24)
@@ -154,7 +154,7 @@ func TestRefreshToken_Expired(t *testing.T) {
 	db, _ := database.Connect(dbCfg)
 	defer database.Close(db)
 
-	user := &database.MimirUser{Username: "testuser"}
+	user := &database.MedhaUser{Username: "testuser"}
 	db.Create(user)
 
 	tm := NewTokenManager(db, 1) // 1 hour TTL
@@ -178,7 +178,7 @@ func TestRevokeToken(t *testing.T) {
 	db, _ := database.Connect(dbCfg)
 	defer database.Close(db)
 
-	user := &database.MimirUser{Username: "testuser"}
+	user := &database.MedhaUser{Username: "testuser"}
 	db.Create(user)
 
 	tm := NewTokenManager(db, 24)
@@ -213,7 +213,7 @@ func TestRevokeAllUserTokens(t *testing.T) {
 	db, _ := database.Connect(dbCfg)
 	defer database.Close(db)
 
-	user := &database.MimirUser{Username: "testuser"}
+	user := &database.MedhaUser{Username: "testuser"}
 	db.Create(user)
 
 	tm := NewTokenManager(db, 24)
@@ -239,7 +239,7 @@ func TestCleanExpiredTokens(t *testing.T) {
 	db, _ := database.Connect(dbCfg)
 	defer database.Close(db)
 
-	user := &database.MimirUser{Username: "testuser"}
+	user := &database.MedhaUser{Username: "testuser"}
 	db.Create(user)
 
 	tm := NewTokenManager(db, 24)
@@ -271,7 +271,7 @@ func TestGetUserIDFromToken(t *testing.T) {
 	db, _ := database.Connect(dbCfg)
 	defer database.Close(db)
 
-	user := &database.MimirUser{Username: "testuser"}
+	user := &database.MedhaUser{Username: "testuser"}
 	db.Create(user)
 
 	tm := NewTokenManager(db, 24)

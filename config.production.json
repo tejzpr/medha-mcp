@@ -4,14 +4,14 @@
     "port": 8080,
     "tls": {
       "enabled": true,
-      "cert_file": "/etc/ssl/certs/mimir.pem",
-      "key_file": "/etc/ssl/private/mimir.key"
+      "cert_file": "/etc/ssl/certs/medha.pem",
+      "key_file": "/etc/ssl/private/medha.key"
     }
   },
   "database": {
     "type": "postgres",
     "sqlite_path": "",
-    "postgres_dsn": "postgresql://mimir:PASSWORD@localhost:5432/mimir_prod?sslmode=require"
+    "postgres_dsn": "postgresql://medha:PASSWORD@localhost:5432/medha_prod?sslmode=require"
   },
   "auth": {
     "type": "saml"

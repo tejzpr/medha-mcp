@@ -14,9 +14,9 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tejzpr/mimir-mcp/internal/database"
-	"github.com/tejzpr/mimir-mcp/internal/git"
-	"github.com/tejzpr/mimir-mcp/internal/tools"
+	"github.com/tejzpr/medha-mcp/internal/database"
+	"github.com/tejzpr/medha-mcp/internal/git"
+	"github.com/tejzpr/medha-mcp/internal/tools"
 	"gorm.io/gorm/logger"
 )
 
@@ -24,8 +24,8 @@ import (
 type testSetup struct {
 	DB       *database.Config
 	DBConn   interface{ Close() error }
-	User     *database.MimirUser
-	Repo     *database.MimirGitRepo
+	User     *database.MedhaUser
+	Repo     *database.MedhaGitRepo
 	RepoPath string
 	ToolCtx  *tools.ToolContext
 	Cleanup  func()
@@ -50,7 +50,7 @@ func setupTestEnvironment(t *testing.T) *testSetup {
 	require.NoError(t, err)
 
 	// Create test user
-	user := &database.MimirUser{
+	user := &database.MedhaUser{
 		Username: "testuser",
 		Email:    "test@example.com",
 	}
@@ -64,7 +64,7 @@ func setupTestEnvironment(t *testing.T) *testSetup {
 	_ = os.MkdirAll(filepath.Join(repoPath, "archive"), 0755)
 
 	// Store repo in database
-	dbRepo := &database.MimirGitRepo{
+	dbRepo := &database.MedhaGitRepo{
 		UserID:   user.ID,
 		RepoUUID: "test-uuid",
 		RepoName: "test-repo",
@@ -86,7 +86,7 @@ func setupTestEnvironment(t *testing.T) *testSetup {
 	}
 }
 
-// TestRememberIntegration tests the mimir_remember tool
+// TestRememberIntegration tests the medha_remember tool
 func TestRememberIntegration(t *testing.T) {
 	setup := setupTestEnvironment(t)
 	defer setup.Cleanup()
@@ -170,7 +170,7 @@ func TestRememberIntegration(t *testing.T) {
 	})
 }
 
-// TestRecallIntegration tests the mimir_recall tool
+// TestRecallIntegration tests the medha_recall tool
 func TestRecallIntegration(t *testing.T) {
 	setup := setupTestEnvironment(t)
 	defer setup.Cleanup()
@@ -235,7 +235,7 @@ func TestRecallIntegration(t *testing.T) {
 	})
 }
 
-// TestForgetRestoreIntegration tests mimir_forget and mimir_restore
+// TestForgetRestoreIntegration tests medha_forget and medha_restore
 func TestForgetRestoreIntegration(t *testing.T) {
 	setup := setupTestEnvironment(t)
 	defer setup.Cleanup()
@@ -282,7 +282,7 @@ func TestForgetRestoreIntegration(t *testing.T) {
 	})
 }
 
-// TestConnectIntegration tests mimir_connect
+// TestConnectIntegration tests medha_connect
 func TestConnectIntegration(t *testing.T) {
 	setup := setupTestEnvironment(t)
 	defer setup.Cleanup()
@@ -351,7 +351,7 @@ func TestConnectIntegration(t *testing.T) {
 	})
 }
 
-// TestHistoryIntegration tests mimir_history
+// TestHistoryIntegration tests medha_history
 func TestHistoryIntegration(t *testing.T) {
 	setup := setupTestEnvironment(t)
 	defer setup.Cleanup()

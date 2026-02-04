@@ -13,9 +13,9 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tejzpr/mimir-mcp/internal/database"
-	"github.com/tejzpr/mimir-mcp/internal/git"
-	"github.com/tejzpr/mimir-mcp/internal/tools"
+	"github.com/tejzpr/medha-mcp/internal/database"
+	"github.com/tejzpr/medha-mcp/internal/git"
+	"github.com/tejzpr/medha-mcp/internal/tools"
 	"gorm.io/gorm/logger"
 )
 
@@ -45,7 +45,7 @@ func TestE2EHumanToolsWorkflow(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create test user
-	user := &database.MimirUser{
+	user := &database.MedhaUser{
 		Username: "testuser@example.com",
 		Email:    "testuser@example.com",
 	}
@@ -64,7 +64,7 @@ func TestE2EHumanToolsWorkflow(t *testing.T) {
 	t.Logf("✓ Repository created: %s", setupResult.RepoPath)
 
 	// Store repo in database
-	dbRepo := &database.MimirGitRepo{
+	dbRepo := &database.MedhaGitRepo{
 		UserID:   user.ID,
 		RepoUUID: setupResult.RepoID,
 		RepoName: setupResult.RepoName,
@@ -270,14 +270,14 @@ func TestE2EMultiUserHumanTools(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create two users
-	users := []*database.MimirUser{
+	users := []*database.MedhaUser{
 		{Username: "alice@example.com", Email: "alice@example.com"},
 		{Username: "bob@example.com", Email: "bob@example.com"},
 	}
 
 	type userContext struct {
-		user     *database.MimirUser
-		repo     *database.MimirGitRepo
+		user     *database.MedhaUser
+		repo     *database.MedhaGitRepo
 		toolCtx  *tools.ToolContext
 		remember func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error)
 		recall   func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error)
@@ -297,7 +297,7 @@ func TestE2EMultiUserHumanTools(t *testing.T) {
 		setupResult, err := git.SetupUserRepository(setupCfg)
 		require.NoError(t, err)
 
-		dbRepo := &database.MimirGitRepo{
+		dbRepo := &database.MedhaGitRepo{
 			UserID:   user.ID,
 			RepoUUID: setupResult.RepoID,
 			RepoName: setupResult.RepoName,
@@ -386,7 +386,7 @@ func TestE2EHumanToolsAnnotations(t *testing.T) {
 	err = database.Migrate(db)
 	require.NoError(t, err)
 
-	user := &database.MimirUser{Username: "annotator@example.com", Email: "annotator@example.com"}
+	user := &database.MedhaUser{Username: "annotator@example.com", Email: "annotator@example.com"}
 	db.Create(user)
 
 	setupCfg := &git.SetupConfig{
@@ -398,7 +398,7 @@ func TestE2EHumanToolsAnnotations(t *testing.T) {
 	setupResult, err := git.SetupUserRepository(setupCfg)
 	require.NoError(t, err)
 
-	dbRepo := &database.MimirGitRepo{
+	dbRepo := &database.MedhaGitRepo{
 		UserID:   user.ID,
 		RepoUUID: setupResult.RepoID,
 		RepoName: setupResult.RepoName,

@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/tejzpr/mimir-mcp/internal/database"
-	"github.com/tejzpr/mimir-mcp/internal/memory"
+	"github.com/tejzpr/medha-mcp/internal/database"
+	"github.com/tejzpr/medha-mcp/internal/memory"
 	"gorm.io/gorm"
 )
 
@@ -82,7 +82,7 @@ func RebuildIndex(db *gorm.DB, userID, repoID uint, repoPath string, opts Option
 		// Handle archived files
 		if isArchived {
 			// Set deleted_at for archived memories
-			db.Model(&database.MimirMemory{}).Where(querySlugAndUserID, mem.ID, userID).
+			db.Model(&database.MedhaMemory{}).Where(querySlugAndUserID, mem.ID, userID).
 				Update("deleted_at", time.Now())
 		}
 	}
@@ -98,7 +98,7 @@ func RebuildIndex(db *gorm.DB, userID, repoID uint, repoPath string, opts Option
 // handleExistingData checks for existing data and clears if force is enabled
 func handleExistingData(db *gorm.DB, userID uint, opts Options) error {
 	var memoryCount int64
-	if err := db.Model(&database.MimirMemory{}).Where("user_id = ?", userID).Count(&memoryCount).Error; err != nil {
+	if err := db.Model(&database.MedhaMemory{}).Where("user_id = ?", userID).Count(&memoryCount).Error; err != nil {
 		return fmt.Errorf("failed to count existing memories: %w", err)
 	}
 
@@ -119,19 +119,19 @@ func handleExistingData(db *gorm.DB, userID uint, opts Options) error {
 // clearUserIndex removes all index data for a user (memories, tags, associations)
 func clearUserIndex(db *gorm.DB, userID uint) error {
 	// 1. Delete memory-tag links
-	if err := db.Exec(`DELETE FROM mimir_memory_tags 
-		WHERE memory_id IN (SELECT id FROM mimir_memories WHERE user_id = ?)`, userID).Error; err != nil {
+	if err := db.Exec(`DELETE FROM medha_memory_tags 
+		WHERE memory_id IN (SELECT id FROM medha_memories WHERE user_id = ?)`, userID).Error; err != nil {
 		return fmt.Errorf("failed to delete memory-tag links: %w", err)
 	}
 
 	// 2. Delete associations (source direction)
-	if err := db.Exec(`DELETE FROM mimir_memory_associations 
-		WHERE source_memory_id IN (SELECT id FROM mimir_memories WHERE user_id = ?)`, userID).Error; err != nil {
+	if err := db.Exec(`DELETE FROM medha_memory_associations 
+		WHERE source_memory_id IN (SELECT id FROM medha_memories WHERE user_id = ?)`, userID).Error; err != nil {
 		return fmt.Errorf("failed to delete associations: %w", err)
 	}
 
 	// 3. Delete memories (hard delete, bypass soft delete)
-	if err := db.Unscoped().Where("user_id = ?", userID).Delete(&database.MimirMemory{}).Error; err != nil {
+	if err := db.Unscoped().Where("user_id = ?", userID).Delete(&database.MedhaMemory{}).Error; err != nil {
 		return fmt.Errorf("failed to delete memories: %w", err)
 	}
 
@@ -200,7 +200,7 @@ func processMemoryFile(db *gorm.DB, userID, repoID uint, repoPath, filePath stri
 	}
 
 	// Check if memory with this slug already exists
-	var existingMem database.MimirMemory
+	var existingMem database.MedhaMemory
 	err = db.Where(querySlugAndUserID, mem.ID, userID).First(&existingMem).Error
 	if err == nil {
 		// Memory already exists, skip
@@ -214,7 +214,7 @@ func processMemoryFile(db *gorm.DB, userID, repoID uint, repoPath, filePath stri
 		strings.HasPrefix(relPath, "archive/")
 
 	// Create memory record
-	dbMem := &database.MimirMemory{
+	dbMem := &database.MedhaMemory{
 		UserID:   userID,
 		RepoID:   repoID,
 		Slug:     mem.ID,
@@ -237,8 +237,8 @@ func processMemoryFile(db *gorm.DB, userID, repoID uint, repoPath, filePath stri
 			continue
 		}
 
-		var tag database.MimirTag
-		err := db.Where("name = ?", tagName).FirstOrCreate(&tag, database.MimirTag{
+		var tag database.MedhaTag
+		err := db.Where("name = ?", tagName).FirstOrCreate(&tag, database.MedhaTag{
 			Name: tagName,
 		}).Error
 		if err != nil {
@@ -247,7 +247,7 @@ func processMemoryFile(db *gorm.DB, userID, repoID uint, repoPath, filePath stri
 		}
 
 		// Create memory-tag association
-		memTag := &database.MimirMemoryTag{
+		memTag := &database.MedhaMemoryTag{
 			MemoryID: dbMem.ID,
 			TagID:    tag.ID,
 		}
@@ -264,7 +264,7 @@ func processAssociations(db *gorm.DB, userID uint, memoryAssociations map[string
 
 	for sourceSlug, associations := range memoryAssociations {
 		// Find source memory
-		var sourceMem database.MimirMemory
+		var sourceMem database.MedhaMemory
 		if err := db.Where(querySlugAndUserID, sourceSlug, userID).First(&sourceMem).Error; err != nil {
 			errors = append(errors, fmt.Sprintf("source memory not found for association: %s", sourceSlug))
 			continue
@@ -272,14 +272,14 @@ func processAssociations(db *gorm.DB, userID uint, memoryAssociations map[string
 
 		for _, assoc := range associations {
 			// Find target memory
-			var targetMem database.MimirMemory
+			var targetMem database.MedhaMemory
 			if err := db.Where(querySlugAndUserID, assoc.Target, userID).First(&targetMem).Error; err != nil {
 				log.Printf("Warning: target memory not found for association: %s -> %s", sourceSlug, assoc.Target)
 				continue
 			}
 
 			// Check if association already exists
-			var existingAssoc database.MimirMemoryAssociation
+			var existingAssoc database.MedhaMemoryAssociation
 			err := db.Where("source_memory_id = ? AND target_memory_id = ?", sourceMem.ID, targetMem.ID).
 				First(&existingAssoc).Error
 			if err == nil {
@@ -288,7 +288,7 @@ func processAssociations(db *gorm.DB, userID uint, memoryAssociations map[string
 			}
 
 			// Create association
-			dbAssoc := &database.MimirMemoryAssociation{
+			dbAssoc := &database.MedhaMemoryAssociation{
 				SourceMemoryID:  sourceMem.ID,
 				TargetMemoryID:  targetMem.ID,
 				AssociationType: assoc.Type,

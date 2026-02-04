@@ -11,14 +11,14 @@ import (
 	"time"
 
 	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/tejzpr/mimir-mcp/internal/database"
-	"github.com/tejzpr/mimir-mcp/internal/git"
+	"github.com/tejzpr/medha-mcp/internal/database"
+	"github.com/tejzpr/medha-mcp/internal/git"
 	"gorm.io/gorm"
 )
 
-// NewHistoryTool creates the mimir_history tool definition
+// NewHistoryTool creates the medha_history tool definition
 func NewHistoryTool() mcp.Tool {
-	return mcp.NewTool("mimir_history",
+	return mcp.NewTool("medha_history",
 		mcp.WithDescription("Answer questions about when things happened and how they changed. Use when you need to know: when something was created, when it was last updated, what changed over time."),
 		mcp.WithString("slug",
 			mcp.Description("Memory to get history for"),
@@ -38,7 +38,7 @@ func NewHistoryTool() mcp.Tool {
 	)
 }
 
-// HistoryHandler handles the mimir_history tool
+// HistoryHandler handles the medha_history tool
 func HistoryHandler(ctx *ToolContext, userID uint) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(c context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		slug := request.GetString("slug", "")
@@ -48,7 +48,7 @@ func HistoryHandler(ctx *ToolContext, userID uint) func(context.Context, mcp.Cal
 		limit := int(request.GetFloat("limit", 10.0))
 
 		// Get user's repo
-		var repo database.MimirGitRepo
+		var repo database.MedhaGitRepo
 		if err := ctx.DB.Where("user_id = ?", userID).First(&repo).Error; err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("failed to get user repository: %v", err)), nil
 		}
@@ -94,7 +94,7 @@ func HistoryHandler(ctx *ToolContext, userID uint) func(context.Context, mcp.Cal
 // getMemoryHistory returns history for a specific memory
 func getMemoryHistory(ctx *ToolContext, gitRepo *git.Repository, userID uint, slug string, since time.Time, showChanges bool, limit int) (string, error) {
 	// Get memory
-	var mem database.MimirMemory
+	var mem database.MedhaMemory
 	if err := ctx.DB.Unscoped().Where("slug = ? AND user_id = ?", slug, userID).First(&mem).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return "", fmt.Errorf("memory not found: %s", slug)
@@ -154,7 +154,7 @@ func getMemoryHistory(ctx *ToolContext, gitRepo *git.Repository, userID uint, sl
 // getTopicHistory returns history for memories matching a topic
 func getTopicHistory(ctx *ToolContext, gitRepo *git.Repository, userID uint, topic string, since time.Time, showChanges bool, limit int, repoPath string) (string, error) {
 	// Find memories matching topic
-	var memories []database.MimirMemory
+	var memories []database.MedhaMemory
 	ctx.DB.Where("user_id = ? AND title LIKE ?", userID, "%"+topic+"%").Find(&memories)
 
 	if len(memories) == 0 {

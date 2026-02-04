@@ -1,19 +1,19 @@
 <p align="center">
-  <img src="assets/mimir.png" alt="Mimir Logo" width="200"/>
+  <img src="assets/medha.png" alt="Medha Logo" width="200"/>
 </p>
 
-<h1 align="center">Mimir MCP</h1>
+<h1 align="center">Medha MCP</h1>
 
 <p align="center">
   <a href="https://go.dev/"><img src="https://img.shields.io/badge/Go-1.23+-00ADD8?style=flat&logo=go" alt="Go Version"></a>
   <a href="https://opensource.org/licenses/MPL-2.0"><img src="https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg" alt="License: MPL 2.0"></a>
   <a href="https://modelcontextprotocol.io/"><img src="https://img.shields.io/badge/MCP-Compatible-blue" alt="MCP"></a>
-  <a href="https://hub.docker.com/r/tejzpr/mimir-mcp"><img src="https://img.shields.io/docker/v/tejzpr/mimir-mcp?label=Docker&logo=docker" alt="Docker Hub"></a>
+  <a href="https://hub.docker.com/r/tejzpr/medha-mcp"><img src="https://img.shields.io/docker/v/tejzpr/medha-mcp?label=Docker&logo=docker" alt="Docker Hub"></a>
 </p>
 
 <p align="center"><strong>Git-backed AI Memory System</strong></p>
 
-Mimir is a Model Context Protocol (MCP) server that provides persistent, git-versioned memory storage for LLM applications. It combines the power of Git's version control with graph-based memory associations, enabling LLMs to maintain long-term memory.
+Medha is a Model Context Protocol (MCP) server that provides persistent, git-versioned memory storage for LLM applications. It combines the power of Git's version control with graph-based memory associations, enabling LLMs to maintain long-term memory.
 
 ## Features
 
@@ -30,7 +30,7 @@ Mimir is a Model Context Protocol (MCP) server that provides persistent, git-ver
 ## Architecture
 
 <p align="center">
-  <img src="assets/architecture.png" alt="Mimir Architecture" width="800"/>
+  <img src="assets/architecture.png" alt="Medha Architecture" width="800"/>
 </p>
 
 ## Requirements
@@ -58,8 +58,8 @@ Add to your MCP client config:
 ```json
 {
   "mcpServers": {
-    "mimir": {
-      "command": "/path/to/bin/mimir",
+    "medha": {
+      "command": "/path/to/bin/medha",
       "env": {
         "ENCRYPTION_KEY": "your-32-char-encryption-key-here"
       }
@@ -72,8 +72,8 @@ Add to your MCP client config:
 ```json
 {
   "mcpServers": {
-    "mimir": {
-      "command": "/path/to/bin/mimir",
+    "medha": {
+      "command": "/path/to/bin/medha",
       "args": [],
       "env": {
         "ENCRYPTION_KEY": "your-32-char-encryption-key-here"
@@ -85,7 +85,7 @@ Add to your MCP client config:
 
 #### Option 2: Go Run
 
-Run Mimir directly using `go run` without installing - similar to `uvx` for Python or `npx` for Node.js.
+Run Medha directly using `go run` without installing - similar to `uvx` for Python or `npx` for Node.js.
 
 **Prerequisites:** Install Go 1.24+ [go.dev/dl](https://go.dev/dl/) and Git in your PATH:
 
@@ -105,9 +105,9 @@ choco install golang git
 ```json
 {
   "mcpServers": {
-    "mimir": {
+    "medha": {
       "command": "go",
-      "args": ["run", "github.com/tejzpr/mimir-mcp/cmd/server@latest"],
+      "args": ["run", "github.com/tejzpr/medha-mcp/cmd/server@latest"],
       "env": {
         "ENCRYPTION_KEY": "your-32-char-encryption-key-here"
       }
@@ -122,18 +122,18 @@ Configure your MCP client to use the Docker Hub image (no build required).
 
 **Simple mode (single user):**
 
-Uses `whoami` inside container, which returns `mimir`. All memories are stored under the `mimir` user.
+Uses `whoami` inside container, which returns `medha`. All memories are stored under the `medha` user.
 
 ```json
 {
   "mcpServers": {
-    "mimir": {
+    "medha": {
       "command": "docker",
       "args": [
         "run", "-i", "--rm",
-        "-v", "/Users/yourname/.mimir:/home/mimir/.mimir",
+        "-v", "/Users/yourname/.medha:/home/medha/.medha",
         "-e", "ENCRYPTION_KEY=your-32-char-encryption-key-here",
-        "tejzpr/mimir-mcp"
+        "tejzpr/medha-mcp"
       ]
     }
   }
@@ -142,19 +142,19 @@ Uses `whoami` inside container, which returns `mimir`. All memories are stored u
 
 **Multi-user mode (with `--with-accessinguser`):**
 
-Uses `ACCESSING_USER` env var for user identity. Useful when multiple users share the same Mimir instance or when integrating with authenticated systems.
+Uses `ACCESSING_USER` env var for user identity. Useful when multiple users share the same Medha instance or when integrating with authenticated systems.
 
 ```json
 {
   "mcpServers": {
-    "mimir": {
+    "medha": {
       "command": "docker",
       "args": [
         "run", "-i", "--rm",
-        "-v", "/Users/yourname/.mimir:/home/mimir/.mimir",
+        "-v", "/Users/yourname/.medha:/home/medha/.medha",
         "-e", "ENCRYPTION_KEY=your-32-char-encryption-key-here",
         "-e", "ACCESSING_USER=yourname",
-        "tejzpr/mimir-mcp",
+        "tejzpr/medha-mcp",
         "--with-accessinguser"
       ]
     }
@@ -166,22 +166,22 @@ Uses `ACCESSING_USER` env var for user identity. Useful when multiple users shar
 > - Replace `/Users/yourname` with your actual home directory path (e.g., `/Users/john` on macOS, `/home/john` on Linux)
 > - Replace `yourname` in `ACCESSING_USER` with your actual username
 > - MCP clients do not expand `$HOME` or `~` in JSON configs - use absolute paths
-> - The `.mimir` mount persists your database and git repositories
-> - The container runs as user `mimir` (uid 1000), data is stored at `/home/mimir/.mimir`
+> - The `.medha` mount persists your database and git repositories
+> - The container runs as user `medha` (uid 1000), data is stored at `/home/medha/.medha`
 
 **Build locally (optional):**
 
 ```bash
-docker build -t mimir-mcp .
+docker build -t medha-mcp .
 ```
 
-Then use `mimir-mcp` instead of `tejzpr/mimir-mcp` in your config.
+Then use `medha-mcp` instead of `tejzpr/medha-mcp` in your config.
 
 **Required mounts:**
 
 | Mount | Purpose |
 |-------|---------|
-| `/Users/yourname/.mimir:/home/mimir/.mimir` | Persists database, config, and git repositories |
+| `/Users/yourname/.medha:/home/medha/.medha` | Persists database, config, and git repositories |
 
 **Environment variables:**
 
@@ -199,8 +199,8 @@ Then use `mimir-mcp` instead of `tejzpr/mimir-mcp` in your config.
 
 **stdio mode (default)**: For MCP client integration
 ```bash
-./bin/mimir                      # Uses system user (whoami)
-./bin/mimir --with-accessinguser # Uses ACCESSING_USER env var
+./bin/medha                      # Uses system user (whoami)
+./bin/medha --with-accessinguser # Uses ACCESSING_USER env var
 ```
 - Communicates via stdin/stdout
 - Automatically authenticates user
@@ -208,15 +208,15 @@ Then use `mimir-mcp` instead of `tejzpr/mimir-mcp` in your config.
 
 **HTTP mode**: For web interface
 ```bash
-./bin/mimir --http              # Default port 8080
-./bin/mimir --http --port=9000  # Custom port
+./bin/medha --http              # Default port 8080
+./bin/medha --http --port=9000  # Custom port
 ```
 - Provides web authentication at `http://localhost:8080/auth`
 - Supports SAML 2.0 for enterprise SSO
 
 ### 4. Configuration (Optional)
 
-Edit `~/.mimir/configs/config.json` for advanced settings:
+Edit `~/.medha/configs/config.json` for advanced settings:
 
 ```json
 {
@@ -229,7 +229,7 @@ Edit `~/.mimir/configs/config.json` for advanced settings:
   },
   "database": {
     "type": "sqlite",
-    "sqlite_path": "~/.mimir/db/mimir.db"
+    "sqlite_path": "~/.medha/db/medha.db"
   },
   "git": {
     "sync_interval_minutes": 60
@@ -244,9 +244,9 @@ See [Configuration Guide](docs/configuration.md) for all options including SAML 
 
 ## MCP Tools
 
-Mimir uses **human-aligned tools** that express intent rather than implementation. This makes them easier for LLMs to use correctly.
+Medha uses **human-aligned tools** that express intent rather than implementation. This makes them easier for LLMs to use correctly.
 
-### mimir_recall
+### medha_recall
 **"What do I know about X?"** - Find and retrieve information:
 ```json
 {
@@ -257,7 +257,7 @@ Mimir uses **human-aligned tools** that express intent rather than implementatio
 
 Also supports `list_all: true` for browsing and `exact: "text"` for literal search.
 
-### mimir_remember
+### medha_remember
 **"Store this for later"** - Create or update memories:
 ```json
 {
@@ -270,7 +270,7 @@ Also supports `list_all: true` for browsing and `exact: "text"` for literal sear
 
 Use `replaces` to supersede old information (marks it as outdated).
 
-### mimir_history
+### medha_history
 **"When did I learn about X?"** - Temporal queries:
 ```json
 {
@@ -280,7 +280,7 @@ Use `replaces` to supersede old information (marks it as outdated).
 }
 ```
 
-### mimir_connect
+### medha_connect
 **"These are related"** - Link or unlink memories:
 ```json
 {
@@ -290,7 +290,7 @@ Use `replaces` to supersede old information (marks it as outdated).
 }
 ```
 
-### mimir_forget
+### medha_forget
 **"No longer relevant"** - Archive a memory:
 ```json
 {
@@ -298,7 +298,7 @@ Use `replaces` to supersede old information (marks it as outdated).
 }
 ```
 
-### mimir_restore
+### medha_restore
 **"Bring back that archived memory"** - Undelete:
 ```json
 {
@@ -306,7 +306,7 @@ Use `replaces` to supersede old information (marks it as outdated).
 }
 ```
 
-### mimir_sync
+### medha_sync
 Manual sync to GitHub:
 ```json
 {
@@ -343,13 +343,13 @@ associations:
 ## Directory Structure
 
 ```
-~/.mimir/
+~/.medha/
 ├── configs/
 │   └── config.json              # User configuration
 ├── db/
-│   └── mimir.db                 # SQLite database (index)
+│   └── medha.db                 # SQLite database (index)
 └── store/
-    └── mimir-{username}/        # User's git repository
+    └── medha-{username}/        # User's git repository
         ├── 2024/
         │   └── 01/              # Date-organized memories
         ├── tags/
@@ -379,10 +379,10 @@ If you need to rebuild the database index from your git repository:
 
 ```bash
 # Rebuild from git (requires empty database)
-mimir --rebuilddb
+medha --rebuilddb
 
 # Rebuild and overwrite existing data
-mimir --rebuilddb --force
+medha --rebuilddb --force
 ```
 
 ## Contributing

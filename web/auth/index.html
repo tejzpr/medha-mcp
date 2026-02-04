@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mimir - Authentication</title>
+    <title>Medha - Authentication</title>
     <style>
         * {
             margin: 0;
@@ -210,7 +210,7 @@
 <body>
     <div class="container">
         <div class="logo">
-            <h1>🧠 Mimir</h1>
+            <h1>🧠 Medha</h1>
             <p>Git-backed LLM Memory System</p>
         </div>
 
@@ -219,7 +219,7 @@
         </div>
 
         <div class="info-box">
-            <p>Sign in with your organization's SAML provider to access Mimir.</p>
+            <p>Sign in with your organization's SAML provider to access Medha.</p>
         </div>
 
         <!-- SAML Authentication Section -->
@@ -335,9 +335,9 @@
 
             // Store PAT and repo info in sessionStorage for post-auth processing
             if (pat || repoUrl || localOnly) {
-                sessionStorage.setItem('mimir_pat', pat);
-                sessionStorage.setItem('mimir_repo_url', repoUrl);
-                sessionStorage.setItem('mimir_local_only', localOnly ? 'true' : 'false');
+                sessionStorage.setItem('medha_pat', pat);
+                sessionStorage.setItem('medha_repo_url', repoUrl);
+                sessionStorage.setItem('medha_local_only', localOnly ? 'true' : 'false');
             }
         });
 
@@ -362,7 +362,7 @@
             .then(response => response.json())
             .then(data => {
                 if (data.token) {
-                    sessionStorage.setItem('mimir_token', data.token);
+                    sessionStorage.setItem('medha_token', data.token);
                     window.location.href = '/?success=true&username=' + encodeURIComponent(data.username);
                 } else {
                     throw new Error('No token received');
@@ -392,7 +392,7 @@
             const token = urlParams.get('token');
             const username = urlParams.get('username');
             if (token) {
-                sessionStorage.setItem('mimir_token', token);
+                sessionStorage.setItem('medha_token', token);
                 if (username) {
                     alert('Authenticated as: ' + decodeURIComponent(username));
                 }

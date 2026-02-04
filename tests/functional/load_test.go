@@ -14,10 +14,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tejzpr/mimir-mcp/internal/database"
-	"github.com/tejzpr/mimir-mcp/internal/git"
-	"github.com/tejzpr/mimir-mcp/internal/graph"
-	"github.com/tejzpr/mimir-mcp/internal/memory"
+	"github.com/tejzpr/medha-mcp/internal/database"
+	"github.com/tejzpr/medha-mcp/internal/git"
+	"github.com/tejzpr/medha-mcp/internal/graph"
+	"github.com/tejzpr/medha-mcp/internal/memory"
 	"gorm.io/gorm/logger"
 )
 
@@ -44,13 +44,13 @@ func TestLoadConcurrentWrites(t *testing.T) {
 	err = database.Migrate(db)
 	require.NoError(t, err)
 
-	user := &database.MimirUser{Username: "testuser"}
+	user := &database.MedhaUser{Username: "testuser"}
 	db.Create(user)
 
 	repo, err := git.InitRepository(repoPath)
 	require.NoError(t, err)
 
-	dbRepo := &database.MimirGitRepo{
+	dbRepo := &database.MedhaGitRepo{
 		UserID:   user.ID,
 		RepoUUID: "test-uuid",
 		RepoName: "test-repo",
@@ -112,7 +112,7 @@ func TestLoadConcurrentWrites(t *testing.T) {
 				}
 
 				// Store in database (GORM handles concurrency)
-				dbMem := &database.MimirMemory{
+				dbMem := &database.MedhaMemory{
 					UserID:   user.ID,
 					RepoID:   dbRepo.ID,
 					Slug:     slug,
@@ -225,10 +225,10 @@ func TestLoadDeepGraphTraversal(t *testing.T) {
 	err = database.Migrate(db)
 	require.NoError(t, err)
 
-	user := &database.MimirUser{Username: "testuser"}
+	user := &database.MedhaUser{Username: "testuser"}
 	db.Create(user)
 
-	repo := &database.MimirGitRepo{
+	repo := &database.MedhaGitRepo{
 		UserID:   user.ID,
 		RepoUUID: "test-uuid",
 		RepoName: "test-repo",
@@ -237,9 +237,9 @@ func TestLoadDeepGraphTraversal(t *testing.T) {
 	db.Create(repo)
 
 	// Create a chain of 10 memories
-	var memories []*database.MimirMemory
+	var memories []*database.MedhaMemory
 	for i := 0; i < 10; i++ {
-		dbMem := &database.MimirMemory{
+		dbMem := &database.MedhaMemory{
 			UserID:   user.ID,
 			RepoID:   repo.ID,
 			Slug:     fmt.Sprintf("memory-%d", i),

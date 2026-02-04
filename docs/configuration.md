@@ -1,17 +1,17 @@
 # Configuration Guide
 
-Mimir uses a JSON configuration file located at `~/.mimir/configs/config.json`. If no configuration file exists, Mimir uses sensible defaults.
+Medha uses a JSON configuration file located at `~/.medha/configs/config.json`. If no configuration file exists, Medha uses sensible defaults.
 
 ## Configuration File Location
 
 ```
-~/.mimir/
+~/.medha/
 ├── configs/
 │   └── config.json    # Main configuration file
 ├── db/
-│   └── mimir.db       # SQLite database (if using SQLite)
+│   └── medha.db       # SQLite database (if using SQLite)
 └── store/
-    └── mimir-{user}/  # Git repositories
+    └── medha-{user}/  # Git repositories
 ```
 
 ## Complete Configuration Reference
@@ -29,8 +29,8 @@ Mimir uses a JSON configuration file located at `~/.mimir/configs/config.json`. 
   },
   "database": {
     "type": "sqlite",
-    "sqlite_path": "~/.mimir/db/mimir.db",
-    "postgres_dsn": "postgres://user:pass@localhost:5432/mimir?sslmode=disable"
+    "sqlite_path": "~/.medha/db/medha.db",
+    "postgres_dsn": "postgres://user:pass@localhost:5432/medha?sslmode=disable"
   },
   "auth": {
     "type": "local"
@@ -74,7 +74,7 @@ Mimir uses a JSON configuration file located at `~/.mimir/configs/config.json`. 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `database.type` | string | `"sqlite"` | Database type: `"sqlite"` or `"postgres"` |
-| `database.sqlite_path` | string | `"~/.mimir/db/mimir.db"` | Path to SQLite database file |
+| `database.sqlite_path` | string | `"~/.medha/db/medha.db"` | Path to SQLite database file |
 | `database.postgres_dsn` | string | `""` | PostgreSQL connection string |
 
 **SQLite (Development/Local)**
@@ -82,7 +82,7 @@ Mimir uses a JSON configuration file located at `~/.mimir/configs/config.json`. 
 {
   "database": {
     "type": "sqlite",
-    "sqlite_path": "~/.mimir/db/mimir.db"
+    "sqlite_path": "~/.medha/db/medha.db"
   }
 }
 ```
@@ -92,7 +92,7 @@ Mimir uses a JSON configuration file located at `~/.mimir/configs/config.json`. 
 {
   "database": {
     "type": "postgres",
-    "postgres_dsn": "postgres://user:password@localhost:5432/mimir?sslmode=require"
+    "postgres_dsn": "postgres://user:password@localhost:5432/medha?sslmode=require"
   }
 }
 ```
@@ -148,9 +148,9 @@ Required when `auth.type` is `"saml"`.
     "type": "saml"
   },
   "saml": {
-    "entity_id": "https://mimir.yourcompany.com",
-    "acs_url": "https://mimir.yourcompany.com/saml/acs",
-    "metadata_url": "https://mimir.yourcompany.com/saml/metadata",
+    "entity_id": "https://medha.yourcompany.com",
+    "acs_url": "https://medha.yourcompany.com/saml/acs",
+    "metadata_url": "https://medha.yourcompany.com/saml/metadata",
     "idp_metadata": "https://yourcompany.okta.com/app/exk123/sso/saml/metadata",
     "certificate": "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----",
     "private_key": "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----",
@@ -183,14 +183,14 @@ Environment variables take precedence over config file values:
 |----------|-------------|
 | `ENCRYPTION_KEY` | 32-character encryption key for PAT tokens (required) |
 | `ACCESSING_USER` | Username override for local auth (with `--with-accessinguser` flag) |
-| `MIMIR_HOME` | Override default data directory (default: `~/.mimir`) |
+| `MEDHA_HOME` | Override default data directory (default: `~/.medha`) |
 
 ## Minimal Configurations
 
 ### Development (Defaults)
 
-No configuration file needed. Mimir uses sensible defaults:
-- SQLite database at `~/.mimir/db/mimir.db`
+No configuration file needed. Medha uses sensible defaults:
+- SQLite database at `~/.medha/db/medha.db`
 - Local authentication
 - 60-minute sync interval
 
@@ -200,15 +200,15 @@ No configuration file needed. Mimir uses sensible defaults:
 {
   "database": {
     "type": "postgres",
-    "postgres_dsn": "postgres://mimir:secret@db.example.com:5432/mimir?sslmode=require"
+    "postgres_dsn": "postgres://medha:secret@db.example.com:5432/medha?sslmode=require"
   },
   "auth": {
     "type": "saml"
   },
   "saml": {
-    "entity_id": "https://mimir.example.com",
-    "acs_url": "https://mimir.example.com/saml/acs",
-    "metadata_url": "https://mimir.example.com/saml/metadata",
+    "entity_id": "https://medha.example.com",
+    "acs_url": "https://medha.example.com/saml/acs",
+    "metadata_url": "https://medha.example.com/saml/metadata",
     "idp_metadata": "https://idp.example.com/metadata",
     "certificate": "...",
     "private_key": "...",
@@ -219,8 +219,8 @@ No configuration file needed. Mimir uses sensible defaults:
     "port": 443,
     "tls": {
       "enabled": true,
-      "cert_file": "/etc/mimir/tls/cert.pem",
-      "key_file": "/etc/mimir/tls/key.pem"
+      "cert_file": "/etc/medha/tls/cert.pem",
+      "key_file": "/etc/medha/tls/key.pem"
     }
   }
 }
@@ -233,14 +233,14 @@ When using Docker, configuration is typically provided via environment variables
 ```json
 {
   "mcpServers": {
-    "mimir": {
+    "medha": {
       "command": "docker",
       "args": [
         "run", "-i", "--rm",
-        "-v", "/home/user/.mimir:/home/mimir/.mimir",
+        "-v", "/home/user/.medha:/home/medha/.medha",
         "-e", "ENCRYPTION_KEY=your-32-char-key-here",
         "-e", "ACCESSING_USER=username",
-        "tejzpr/mimir-mcp",
+        "tejzpr/medha-mcp",
         "--with-accessinguser"
       ]
     }
@@ -250,7 +250,7 @@ When using Docker, configuration is typically provided via environment variables
 
 ## Validation Rules
 
-Mimir validates configuration on startup:
+Medha validates configuration on startup:
 
 - `auth.type` must be `"local"` or `"saml"`
 - `database.type` must be `"sqlite"` or `"postgres"`
@@ -276,8 +276,8 @@ head -c 32 /dev/urandom | base64
 ## Troubleshooting
 
 **Config file not found**
-- Mimir will use defaults if `~/.mimir/configs/config.json` doesn't exist
-- Run `mimir --http` once to auto-create the directory structure
+- Medha will use defaults if `~/.medha/configs/config.json` doesn't exist
+- Run `medha --http` once to auto-create the directory structure
 
 **Database connection failed**
 - For SQLite: Ensure the directory exists and is writable

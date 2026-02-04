@@ -8,9 +8,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/tejzpr/mimir-mcp/internal/crypto"
-	"github.com/tejzpr/mimir-mcp/internal/database"
-	"github.com/tejzpr/mimir-mcp/internal/git"
+	"github.com/tejzpr/medha-mcp/internal/crypto"
+	"github.com/tejzpr/medha-mcp/internal/database"
+	"github.com/tejzpr/medha-mcp/internal/git"
 	"gorm.io/gorm"
 )
 
@@ -55,7 +55,7 @@ func (s *Scheduler) Stop() {
 
 // syncAllRepositories syncs all user repositories
 func (s *Scheduler) syncAllRepositories() {
-	var repos []database.MimirGitRepo
+	var repos []database.MedhaGitRepo
 	if err := s.db.Where("pat_token_encrypted != ''").Find(&repos).Error; err != nil {
 		log.Printf("Failed to fetch repositories: %v", err)
 		return
@@ -69,7 +69,7 @@ func (s *Scheduler) syncAllRepositories() {
 }
 
 // syncRepository syncs a single repository
-func (s *Scheduler) syncRepository(repo *database.MimirGitRepo) error {
+func (s *Scheduler) syncRepository(repo *database.MedhaGitRepo) error {
 	// Decrypt PAT
 	pat, err := crypto.DecryptPAT(repo.PATTokenEncrypted, s.encryptionKey)
 	if err != nil {

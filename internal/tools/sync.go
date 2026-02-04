@@ -10,27 +10,27 @@ import (
 	"time"
 
 	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/tejzpr/mimir-mcp/internal/crypto"
-	"github.com/tejzpr/mimir-mcp/internal/database"
-	"github.com/tejzpr/mimir-mcp/internal/git"
-	"github.com/tejzpr/mimir-mcp/internal/rebuild"
+	"github.com/tejzpr/medha-mcp/internal/crypto"
+	"github.com/tejzpr/medha-mcp/internal/database"
+	"github.com/tejzpr/medha-mcp/internal/git"
+	"github.com/tejzpr/medha-mcp/internal/rebuild"
 )
 
-// NewSyncTool creates the mimir_sync tool definition
+// NewSyncTool creates the medha_sync tool definition
 func NewSyncTool() mcp.Tool {
-	return mcp.NewTool("mimir_sync",
+	return mcp.NewTool("medha_sync",
 		mcp.WithDescription("Manually trigger git push/pull sync"),
 		mcp.WithBoolean("force", mcp.Description("Force last-write-wins for conflicts")),
 	)
 }
 
-// SyncHandler handles the mimir_sync tool
+// SyncHandler handles the medha_sync tool
 func SyncHandler(ctx *ToolContext, userID uint, encryptionKey []byte) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(c context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		force := request.GetBool("force", false)
 
 		// Get user's repo
-		var repo database.MimirGitRepo
+		var repo database.MedhaGitRepo
 		if err := ctx.DB.Where("user_id = ?", userID).First(&repo).Error; err != nil {
 			return mcp.NewToolResultError("repository not found"), nil
 		}

@@ -20,7 +20,7 @@ on:
 
 env:
   REGISTRY: docker.io
-  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/mimir-mcp
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/medha-mcp
 
 jobs:
   test:
@@ -32,7 +32,7 @@ jobs:
         image: postgres:15
         env:
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: mimir_test
+          POSTGRES_DB: medha_test
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -116,8 +116,8 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: mimir-binary
-        path: bin/mimir
+        name: medha-binary
+        path: bin/medha
 
   docker-publish:
     name: Docker Publish
@@ -201,26 +201,26 @@ jobs:
         
         # All builds use CGO_ENABLED=0 - pure-Go SQLite via modernc.org/sqlite
         # Linux amd64
-        CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s -X main.Version=${{ steps.version.outputs.VERSION }}" -o dist/mimir-linux-amd64 cmd/server/main.go
+        CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s -X main.Version=${{ steps.version.outputs.VERSION }}" -o dist/medha-linux-amd64 cmd/server/main.go
         
         # Linux arm64
-        CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags="-w -s -X main.Version=${{ steps.version.outputs.VERSION }}" -o dist/mimir-linux-arm64 cmd/server/main.go
+        CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags="-w -s -X main.Version=${{ steps.version.outputs.VERSION }}" -o dist/medha-linux-arm64 cmd/server/main.go
         
         # macOS amd64 (Intel)
-        CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags="-w -s -X main.Version=${{ steps.version.outputs.VERSION }}" -o dist/mimir-darwin-amd64 cmd/server/main.go
+        CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags="-w -s -X main.Version=${{ steps.version.outputs.VERSION }}" -o dist/medha-darwin-amd64 cmd/server/main.go
         
         # macOS arm64 (Apple Silicon)
-        CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags="-w -s -X main.Version=${{ steps.version.outputs.VERSION }}" -o dist/mimir-darwin-arm64 cmd/server/main.go
+        CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags="-w -s -X main.Version=${{ steps.version.outputs.VERSION }}" -o dist/medha-darwin-arm64 cmd/server/main.go
         
         # Windows amd64
-        CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="-w -s -X main.Version=${{ steps.version.outputs.VERSION }}" -o dist/mimir-windows-amd64.exe cmd/server/main.go
+        CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="-w -s -X main.Version=${{ steps.version.outputs.VERSION }}" -o dist/medha-windows-amd64.exe cmd/server/main.go
 
     - name: Create archives
       run: |
         cd dist
         
         # Create tar.gz for Linux and macOS
-        for f in mimir-linux-* mimir-darwin-*; do
+        for f in medha-linux-* medha-darwin-*; do
           if [ -f "$f" ]; then
             tar -czvf "${f}.tar.gz" "$f"
             rm "$f"
@@ -228,7 +228,7 @@ jobs:
         done
         
         # Create zip for Windows
-        for f in mimir-windows-*.exe; do
+        for f in medha-windows-*.exe; do
           if [ -f "$f" ]; then
             zip "${f%.exe}.zip" "$f"
             rm "$f"

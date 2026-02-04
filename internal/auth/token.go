@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/tejzpr/mimir-mcp/internal/database"
+	"github.com/tejzpr/medha-mcp/internal/database"
 	"gorm.io/gorm"
 )
 
@@ -29,7 +29,7 @@ func NewTokenManager(db *gorm.DB, ttlHours int) *TokenManager {
 }
 
 // GenerateToken creates a new access and refresh token for a user
-func (tm *TokenManager) GenerateToken(userID uint) (*database.MimirAuthToken, error) {
+func (tm *TokenManager) GenerateToken(userID uint) (*database.MedhaAuthToken, error) {
 	accessToken, err := generateRandomToken(32)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate access token: %w", err)
@@ -40,7 +40,7 @@ func (tm *TokenManager) GenerateToken(userID uint) (*database.MimirAuthToken, er
 		return nil, fmt.Errorf("failed to generate refresh token: %w", err)
 	}
 
-	token := &database.MimirAuthToken{
+	token := &database.MedhaAuthToken{
 		UserID:       userID,
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
@@ -55,8 +55,8 @@ func (tm *TokenManager) GenerateToken(userID uint) (*database.MimirAuthToken, er
 }
 
 // ValidateToken checks if a token is valid and not expired
-func (tm *TokenManager) ValidateToken(accessToken string) (*database.MimirAuthToken, error) {
-	var token database.MimirAuthToken
+func (tm *TokenManager) ValidateToken(accessToken string) (*database.MedhaAuthToken, error) {
+	var token database.MedhaAuthToken
 	err := tm.db.Where("access_token = ?", accessToken).First(&token).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -74,8 +74,8 @@ func (tm *TokenManager) ValidateToken(accessToken string) (*database.MimirAuthTo
 }
 
 // RefreshToken generates a new access token using a refresh token
-func (tm *TokenManager) RefreshToken(refreshToken string) (*database.MimirAuthToken, error) {
-	var oldToken database.MimirAuthToken
+func (tm *TokenManager) RefreshToken(refreshToken string) (*database.MedhaAuthToken, error) {
+	var oldToken database.MedhaAuthToken
 	err := tm.db.Where("refresh_token = ?", refreshToken).First(&oldToken).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -110,7 +110,7 @@ func (tm *TokenManager) RefreshToken(refreshToken string) (*database.MimirAuthTo
 
 // RevokeToken invalidates a token
 func (tm *TokenManager) RevokeToken(accessToken string) error {
-	result := tm.db.Where("access_token = ?", accessToken).Delete(&database.MimirAuthToken{})
+	result := tm.db.Where("access_token = ?", accessToken).Delete(&database.MedhaAuthToken{})
 	if result.Error != nil {
 		return fmt.Errorf("failed to revoke token: %w", result.Error)
 	}
@@ -122,7 +122,7 @@ func (tm *TokenManager) RevokeToken(accessToken string) error {
 
 // RevokeAllUserTokens invalidates all tokens for a user
 func (tm *TokenManager) RevokeAllUserTokens(userID uint) error {
-	result := tm.db.Where("user_id = ?", userID).Delete(&database.MimirAuthToken{})
+	result := tm.db.Where("user_id = ?", userID).Delete(&database.MedhaAuthToken{})
 	if result.Error != nil {
 		return fmt.Errorf("failed to revoke user tokens: %w", result.Error)
 	}
@@ -131,7 +131,7 @@ func (tm *TokenManager) RevokeAllUserTokens(userID uint) error {
 
 // CleanExpiredTokens removes expired tokens from the database
 func (tm *TokenManager) CleanExpiredTokens() (int64, error) {
-	result := tm.db.Where("expires_at < ?", time.Now()).Delete(&database.MimirAuthToken{})
+	result := tm.db.Where("expires_at < ?", time.Now()).Delete(&database.MedhaAuthToken{})
 	if result.Error != nil {
 		return 0, fmt.Errorf("failed to clean expired tokens: %w", result.Error)
 	}

@@ -10,7 +10,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/tejzpr/mimir-mcp/internal/database"
+	"github.com/tejzpr/medha-mcp/internal/database"
 	"gorm.io/gorm"
 )
 
@@ -62,15 +62,15 @@ func (l *LocalAuthenticator) GetLocalUsername() (string, error) {
 }
 
 // Authenticate creates or retrieves a user and generates a token for local mode
-func (l *LocalAuthenticator) Authenticate(db *gorm.DB) (*database.MimirUser, *database.MimirAuthToken, error) {
+func (l *LocalAuthenticator) Authenticate(db *gorm.DB) (*database.MedhaUser, *database.MedhaAuthToken, error) {
 	username, err := l.GetLocalUsername()
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// Find or create user
-	var user database.MimirUser
-	result := db.Where("username = ?", username).FirstOrCreate(&user, database.MimirUser{
+	var user database.MedhaUser
+	result := db.Where("username = ?", username).FirstOrCreate(&user, database.MedhaUser{
 		Username: username,
 		Email:    username + "@local",
 	})

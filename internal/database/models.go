@@ -10,8 +10,8 @@ import (
 	"gorm.io/gorm"
 )
 
-// MimirUser represents a user in the system
-type MimirUser struct {
+// MedhaUser represents a user in the system
+type MedhaUser struct {
 	ID        uint           `gorm:"primaryKey" json:"id"`
 	Username  string         `gorm:"uniqueIndex;not null" json:"username"`
 	Email     string         `json:"email"`
@@ -20,13 +20,13 @@ type MimirUser struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 }
 
-// TableName specifies the table name for MimirUser
-func (MimirUser) TableName() string {
-	return "mimir_users"
+// TableName specifies the table name for MedhaUser
+func (MedhaUser) TableName() string {
+	return "medha_users"
 }
 
-// MimirAuthToken represents authentication tokens for users
-type MimirAuthToken struct {
+// MedhaAuthToken represents authentication tokens for users
+type MedhaAuthToken struct {
 	ID           uint      `gorm:"primaryKey" json:"id"`
 	UserID       uint      `gorm:"index;not null" json:"user_id"`
 	AccessToken  string    `gorm:"type:text;not null" json:"access_token"`
@@ -36,16 +36,16 @@ type MimirAuthToken struct {
 	UpdatedAt    time.Time `json:"updated_at"`
 
 	// Foreign key relationship
-	User MimirUser `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
+	User MedhaUser `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
 }
 
-// TableName specifies the table name for MimirAuthToken
-func (MimirAuthToken) TableName() string {
-	return "mimir_auth_tokens"
+// TableName specifies the table name for MedhaAuthToken
+func (MedhaAuthToken) TableName() string {
+	return "medha_auth_tokens"
 }
 
-// MimirGitRepo represents a git repository for a user
-type MimirGitRepo struct {
+// MedhaGitRepo represents a git repository for a user
+type MedhaGitRepo struct {
 	ID                uint      `gorm:"primaryKey" json:"id"`
 	UserID            uint      `gorm:"index;not null" json:"user_id"`
 	RepoUUID          string    `gorm:"uniqueIndex;not null" json:"repo_uuid"`
@@ -57,16 +57,16 @@ type MimirGitRepo struct {
 	UpdatedAt         time.Time `json:"updated_at"`
 
 	// Foreign key relationship
-	User MimirUser `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
+	User MedhaUser `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
 }
 
-// TableName specifies the table name for MimirGitRepo
-func (MimirGitRepo) TableName() string {
-	return "mimir_git_repos"
+// TableName specifies the table name for MedhaGitRepo
+func (MedhaGitRepo) TableName() string {
+	return "medha_git_repos"
 }
 
-// MimirMemory represents a memory stored in the git repository
-type MimirMemory struct {
+// MedhaMemory represents a memory stored in the git repository
+type MedhaMemory struct {
 	ID        uint           `gorm:"primaryKey" json:"id"`
 	UserID    uint           `gorm:"index;not null" json:"user_id"`
 	RepoID    uint           `gorm:"index;not null" json:"repo_id"`
@@ -83,17 +83,17 @@ type MimirMemory struct {
 	AccessCount    int       `gorm:"column:access_count;default:0" json:"access_count"`          // Number of times this memory was accessed
 
 	// Foreign key relationships
-	User MimirUser    `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
-	Repo MimirGitRepo `gorm:"foreignKey:RepoID;constraint:OnDelete:CASCADE" json:"-"`
+	User MedhaUser    `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
+	Repo MedhaGitRepo `gorm:"foreignKey:RepoID;constraint:OnDelete:CASCADE" json:"-"`
 }
 
-// TableName specifies the table name for MimirMemory
-func (MimirMemory) TableName() string {
-	return "mimir_memories"
+// TableName specifies the table name for MedhaMemory
+func (MedhaMemory) TableName() string {
+	return "medha_memories"
 }
 
-// MimirMemoryAssociation represents associations between memories
-type MimirMemoryAssociation struct {
+// MedhaMemoryAssociation represents associations between memories
+type MedhaMemoryAssociation struct {
 	ID              uint      `gorm:"primaryKey" json:"id"`
 	SourceMemoryID  uint      `gorm:"index;not null" json:"source_memory_id"`
 	TargetMemoryID  uint      `gorm:"index;not null" json:"target_memory_id"`
@@ -103,55 +103,55 @@ type MimirMemoryAssociation struct {
 	CreatedAt       time.Time `json:"created_at"`
 
 	// Foreign key relationships
-	SourceMemory MimirMemory `gorm:"foreignKey:SourceMemoryID;constraint:OnDelete:CASCADE" json:"-"`
-	TargetMemory MimirMemory `gorm:"foreignKey:TargetMemoryID;constraint:OnDelete:CASCADE" json:"-"`
+	SourceMemory MedhaMemory `gorm:"foreignKey:SourceMemoryID;constraint:OnDelete:CASCADE" json:"-"`
+	TargetMemory MedhaMemory `gorm:"foreignKey:TargetMemoryID;constraint:OnDelete:CASCADE" json:"-"`
 }
 
-// TableName specifies the table name for MimirMemoryAssociation
-func (MimirMemoryAssociation) TableName() string {
-	return "mimir_memory_associations"
+// TableName specifies the table name for MedhaMemoryAssociation
+func (MedhaMemoryAssociation) TableName() string {
+	return "medha_memory_associations"
 }
 
-// MimirTag represents a tag that can be applied to memories
-type MimirTag struct {
+// MedhaTag represents a tag that can be applied to memories
+type MedhaTag struct {
 	ID        uint      `gorm:"primaryKey" json:"id"`
 	Name      string    `gorm:"uniqueIndex;not null" json:"name"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
-// TableName specifies the table name for MimirTag
-func (MimirTag) TableName() string {
-	return "mimir_tags"
+// TableName specifies the table name for MedhaTag
+func (MedhaTag) TableName() string {
+	return "medha_tags"
 }
 
-// MimirMemoryTag represents the many-to-many relationship between memories and tags
-type MimirMemoryTag struct {
+// MedhaMemoryTag represents the many-to-many relationship between memories and tags
+type MedhaMemoryTag struct {
 	MemoryID uint `gorm:"primaryKey" json:"memory_id"`
 	TagID    uint `gorm:"primaryKey" json:"tag_id"`
 
 	// Foreign key relationships
-	Memory MimirMemory `gorm:"foreignKey:MemoryID;constraint:OnDelete:CASCADE" json:"-"`
-	Tag    MimirTag    `gorm:"foreignKey:TagID;constraint:OnDelete:CASCADE" json:"-"`
+	Memory MedhaMemory `gorm:"foreignKey:MemoryID;constraint:OnDelete:CASCADE" json:"-"`
+	Tag    MedhaTag    `gorm:"foreignKey:TagID;constraint:OnDelete:CASCADE" json:"-"`
 }
 
-// TableName specifies the table name for MimirMemoryTag
-func (MimirMemoryTag) TableName() string {
-	return "mimir_memory_tags"
+// TableName specifies the table name for MedhaMemoryTag
+func (MedhaMemoryTag) TableName() string {
+	return "medha_memory_tags"
 }
 
-// MimirAnnotation represents a note or correction on a memory without changing the original content
-type MimirAnnotation struct {
+// MedhaAnnotation represents a note or correction on a memory without changing the original content
+type MedhaAnnotation struct {
 	ID        uint        `gorm:"primaryKey" json:"id"`
 	MemoryID  uint        `gorm:"index;not null" json:"memory_id"`
 	Type      string      `gorm:"not null" json:"type"` // correction, clarification, context, deprecated
 	Content   string      `gorm:"type:text;not null" json:"content"`
 	CreatedAt time.Time   `json:"created_at"`
-	Memory    MimirMemory `gorm:"foreignKey:MemoryID;constraint:OnDelete:CASCADE" json:"-"`
+	Memory    MedhaMemory `gorm:"foreignKey:MemoryID;constraint:OnDelete:CASCADE" json:"-"`
 }
 
-// TableName specifies the table name for MimirAnnotation
-func (MimirAnnotation) TableName() string {
-	return "mimir_annotations"
+// TableName specifies the table name for MedhaAnnotation
+func (MedhaAnnotation) TableName() string {
+	return "medha_annotations"
 }
 
 // AnnotationType constants for memory annotations

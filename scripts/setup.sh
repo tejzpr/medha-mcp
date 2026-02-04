@@ -2,17 +2,17 @@
 
 set -e
 
-echo "🧠 Mimir MCP - Setup Script"
+echo "🧠 Medha MCP - Setup Script"
 echo "===================================="
 echo ""
 
 # Create directory structure
 echo "📁 Creating directory structure..."
-mkdir -p ~/.mimir/{configs,db,store}
-echo "✓ Directories created at ~/.mimir/"
+mkdir -p ~/.medha/{configs,db,store}
+echo "✓ Directories created at ~/.medha/"
 
 # Generate sample config if it doesn't exist
-CONFIG_FILE="$HOME/.mimir/configs/config.json"
+CONFIG_FILE="$HOME/.medha/configs/config.json"
 if [ ! -f "$CONFIG_FILE" ]; then
     echo "📝 Generating sample configuration..."
     cat > "$CONFIG_FILE" <<EOF
@@ -28,7 +28,7 @@ if [ ! -f "$CONFIG_FILE" ]; then
   },
   "database": {
     "type": "sqlite",
-    "sqlite_path": "$HOME/.mimir/db/mimir.db",
+    "sqlite_path": "$HOME/.medha/db/medha.db",
     "postgres_dsn": ""
   },
   "saml": {
@@ -66,6 +66,6 @@ echo ""
 echo "Next steps:"
 echo "1. Edit $CONFIG_FILE with your SAML configuration"
 echo "2. Run 'make build' to build the server"
-echo "3. Run 'make run' or './bin/mimir' to start the server"
+echo "3. Run 'make run' or './bin/medha' to start the server"
 echo "4. Access http://localhost:8080/auth to authenticate"
 echo ""

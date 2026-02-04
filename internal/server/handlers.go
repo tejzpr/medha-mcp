@@ -11,10 +11,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/tejzpr/mimir-mcp/internal/auth"
-	"github.com/tejzpr/mimir-mcp/internal/crypto"
-	"github.com/tejzpr/mimir-mcp/internal/database"
-	"github.com/tejzpr/mimir-mcp/internal/git"
+	"github.com/tejzpr/medha-mcp/internal/auth"
+	"github.com/tejzpr/medha-mcp/internal/crypto"
+	"github.com/tejzpr/medha-mcp/internal/database"
+	"github.com/tejzpr/medha-mcp/internal/git"
 )
 
 // HTTPServer handles HTTP routes
@@ -70,7 +70,7 @@ func (h *HTTPServer) HandleLocalAuth(w http.ResponseWriter, r *http.Request) {
 
 	// Setup user repository
 	homeDir, _ := os.UserHomeDir()
-	storePath := filepath.Join(homeDir, ".mimir", "store")
+	storePath := filepath.Join(homeDir, ".medha", "store")
 
 	setupCfg := &git.SetupConfig{
 		BaseStorePath: storePath,
@@ -81,7 +81,7 @@ func (h *HTTPServer) HandleLocalAuth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if repo already exists (check both database and filesystem)
-	var existingRepo database.MimirGitRepo
+	var existingRepo database.MedhaGitRepo
 	expectedRepoPath := git.GetUserRepositoryPath(storePath, user.Username)
 	
 	err = h.mcpServer.db.Where("user_id = ?", user.ID).First(&existingRepo).Error
@@ -93,10 +93,10 @@ func (h *HTTPServer) HandleLocalAuth(w http.ResponseWriter, r *http.Request) {
 			if patToken != "" {
 				encryptedPAT, _ = crypto.EncryptPAT(patToken, h.encryptionKey)
 			}
-			repo := &database.MimirGitRepo{
+			repo := &database.MedhaGitRepo{
 				UserID:            user.ID,
 				RepoUUID:          user.Username,
-				RepoName:          fmt.Sprintf("mimir-%s", user.Username),
+				RepoName:          fmt.Sprintf("medha-%s", user.Username),
 				RepoURL:           repoURL,
 				RepoPath:          expectedRepoPath,
 				PATTokenEncrypted: encryptedPAT,
@@ -117,7 +117,7 @@ func (h *HTTPServer) HandleLocalAuth(w http.ResponseWriter, r *http.Request) {
 			}
 
 			// Store repo in database
-			repo := &database.MimirGitRepo{
+			repo := &database.MedhaGitRepo{
 				UserID:            user.ID,
 				RepoUUID:          result.RepoID,
 				RepoName:          result.RepoName,
@@ -148,7 +148,7 @@ func (h *HTTPServer) HandleMCP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get user's repository
-	var repo database.MimirGitRepo
+	var repo database.MedhaGitRepo
 	if err := h.mcpServer.db.Where("user_id = ?", userID).First(&repo).Error; err != nil {
 		http.Error(w, "Repository not found", http.StatusNotFound)
 		return

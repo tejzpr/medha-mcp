@@ -12,9 +12,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tejzpr/mimir-mcp/internal/database"
-	"github.com/tejzpr/mimir-mcp/internal/git"
-	"github.com/tejzpr/mimir-mcp/internal/memory"
+	"github.com/tejzpr/medha-mcp/internal/database"
+	"github.com/tejzpr/medha-mcp/internal/git"
+	"github.com/tejzpr/medha-mcp/internal/memory"
 	"gorm.io/gorm/logger"
 )
 
@@ -40,7 +40,7 @@ func TestMemoryLifecycle(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create test user
-	user := &database.MimirUser{
+	user := &database.MedhaUser{
 		Username: "testuser",
 		Email:    "test@example.com",
 	}
@@ -54,7 +54,7 @@ func TestMemoryLifecycle(t *testing.T) {
 	_ = os.MkdirAll(filepath.Join(repoPath, "2024/01"), 0755)
 
 	// Store repo in database
-	dbRepo := &database.MimirGitRepo{
+	dbRepo := &database.MedhaGitRepo{
 		UserID:   user.ID,
 		RepoUUID: "test-uuid",
 		RepoName: "test-repo",
@@ -89,7 +89,7 @@ func TestMemoryLifecycle(t *testing.T) {
 	require.NoError(t, err)
 
 	// Store in database
-	dbMem := &database.MimirMemory{
+	dbMem := &database.MedhaMemory{
 		UserID:   user.ID,
 		RepoID:   dbRepo.ID,
 		Slug:     slug,
@@ -99,7 +99,7 @@ func TestMemoryLifecycle(t *testing.T) {
 	db.Create(dbMem)
 
 	// 2. READ: Verify memory can be read
-	var foundMem database.MimirMemory
+	var foundMem database.MedhaMemory
 	err = db.Where("slug = ?", slug).First(&foundMem).Error
 	require.NoError(t, err)
 	assert.Equal(t, "Test Memory", foundMem.Title)
@@ -147,7 +147,7 @@ func TestMemoryLifecycle(t *testing.T) {
 	db.Delete(&foundMem)
 
 	// 5. VERIFY: Memory is soft deleted but history preserved
-	var deletedMem database.MimirMemory
+	var deletedMem database.MedhaMemory
 	err = db.Unscoped().Where("slug = ?", slug).First(&deletedMem).Error
 	require.NoError(t, err)
 	assert.True(t, deletedMem.DeletedAt.Valid)

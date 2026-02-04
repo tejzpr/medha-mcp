@@ -24,8 +24,8 @@ type CommitOptions struct {
 // DefaultCommitOptions returns default commit options
 func DefaultCommitOptions() *CommitOptions {
 	return &CommitOptions{
-		Author:    "Mimir",
-		Email:     "memory@mimir.local",
+		Author:    "Medha",
+		Email:     "memory@medha.local",
 		AllowEmpty: false,
 	}
 }
@@ -191,7 +191,7 @@ func (CommitMessageFormats) ArchiveMemory(slug string) string {
 
 // InitialCommit returns a commit message for repository initialization
 func (CommitMessageFormats) InitialCommit() string {
-	return "chore: Initialize Mimir repository"
+	return "chore: Initialize Medha repository"
 }
 
 // ClearSuperseded returns a commit message for clearing a superseded status

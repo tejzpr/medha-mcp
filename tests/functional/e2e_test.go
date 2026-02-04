@@ -13,10 +13,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tejzpr/mimir-mcp/internal/database"
-	"github.com/tejzpr/mimir-mcp/internal/git"
-	"github.com/tejzpr/mimir-mcp/internal/graph"
-	"github.com/tejzpr/mimir-mcp/internal/memory"
+	"github.com/tejzpr/medha-mcp/internal/database"
+	"github.com/tejzpr/medha-mcp/internal/git"
+	"github.com/tejzpr/medha-mcp/internal/graph"
+	"github.com/tejzpr/medha-mcp/internal/memory"
 	"gorm.io/gorm/logger"
 )
 
@@ -46,7 +46,7 @@ func TestE2ECompleteWorkflow(t *testing.T) {
 	require.NoError(t, err)
 
 	// 2. Create user (simulating SAML authentication)
-	user := &database.MimirUser{
+	user := &database.MedhaUser{
 		Username: "john.doe@example.com",
 		Email:    "john.doe@example.com",
 	}
@@ -66,7 +66,7 @@ func TestE2ECompleteWorkflow(t *testing.T) {
 	t.Logf("✓ Repository created: %s at %s", setupResult.RepoName, setupResult.RepoPath)
 
 	// Store repo in database
-	dbRepo := &database.MimirGitRepo{
+	dbRepo := &database.MedhaGitRepo{
 		UserID:   user.ID,
 		RepoUUID: setupResult.RepoID,
 		RepoName: setupResult.RepoName,
@@ -101,7 +101,7 @@ func TestE2ECompleteWorkflow(t *testing.T) {
 		},
 	}
 
-	var createdMemories []*database.MimirMemory
+	var createdMemories []*database.MedhaMemory
 	organizer := memory.NewOrganizer(setupResult.RepoPath)
 
 	for _, memData := range memories {
@@ -129,7 +129,7 @@ func TestE2ECompleteWorkflow(t *testing.T) {
 		require.NoError(t, err)
 
 		// Store in database
-		dbMem := &database.MimirMemory{
+		dbMem := &database.MedhaMemory{
 			UserID:   user.ID,
 			RepoID:   dbRepo.ID,
 			Slug:     slug,
@@ -141,10 +141,10 @@ func TestE2ECompleteWorkflow(t *testing.T) {
 
 		// Store tags
 		for _, tagName := range memData.tags {
-			var tag database.MimirTag
-			db.Where("name = ?", tagName).FirstOrCreate(&tag, database.MimirTag{Name: tagName})
+			var tag database.MedhaTag
+			db.Where("name = ?", tagName).FirstOrCreate(&tag, database.MedhaTag{Name: tagName})
 
-			memTag := &database.MimirMemoryTag{
+			memTag := &database.MedhaMemoryTag{
 				MemoryID: dbMem.ID,
 				TagID:    tag.ID,
 			}
@@ -178,17 +178,17 @@ func TestE2ECompleteWorkflow(t *testing.T) {
 	t.Logf("✓ Association: Meeting -> Contact")
 
 	// 6. Search memories
-	var searchResults []database.MimirMemory
+	var searchResults []database.MedhaMemory
 	err = db.Where("user_id = ?", user.ID).Find(&searchResults).Error
 	require.NoError(t, err)
 	assert.Equal(t, 3, len(searchResults))
 	t.Logf("✓ Search found %d memories", len(searchResults))
 
 	// Search by tag
-	var projectTag database.MimirTag
+	var projectTag database.MedhaTag
 	db.Where("name = ?", "project").First(&projectTag)
 
-	var projectMemTags []database.MimirMemoryTag
+	var projectMemTags []database.MedhaMemoryTag
 	db.Where("tag_id = ?", projectTag.ID).Find(&projectMemTags)
 	assert.Equal(t, 2, len(projectMemTags)) // Project and Meeting both have "project" tag
 	t.Logf("✓ Tag search found %d memories with 'project' tag", len(projectMemTags))
@@ -201,7 +201,7 @@ func TestE2ECompleteWorkflow(t *testing.T) {
 	t.Logf("✓ Graph traversal: %d nodes, %d edges", len(g.Nodes), len(g.Edges))
 
 	// 8. Update a memory
-	var memToUpdate database.MimirMemory
+	var memToUpdate database.MedhaMemory
 	db.First(&memToUpdate, createdMemories[0].ID)
 
 	content, _ := os.ReadFile(memToUpdate.FilePath)
@@ -252,7 +252,7 @@ func TestE2ECompleteWorkflow(t *testing.T) {
 	t.Logf("✓ Deleted memory in archive")
 
 	// 13. Verify deleted memory still in database (soft delete)
-	var deletedMem database.MimirMemory
+	var deletedMem database.MedhaMemory
 	err = db.Unscoped().First(&deletedMem, memToDelete.ID).Error
 	require.NoError(t, err)
 	assert.True(t, deletedMem.DeletedAt.Valid)
@@ -286,7 +286,7 @@ func TestE2EMultiUserScenario(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create two users
-	users := []*database.MimirUser{
+	users := []*database.MedhaUser{
 		{Username: "user1@example.com", Email: "user1@example.com"},
 		{Username: "user2@example.com", Email: "user2@example.com"},
 	}
@@ -306,7 +306,7 @@ func TestE2EMultiUserScenario(t *testing.T) {
 		setupResult, err := git.SetupUserRepository(setupCfg)
 		require.NoError(t, err)
 
-		dbRepo := &database.MimirGitRepo{
+		dbRepo := &database.MedhaGitRepo{
 			UserID:   user.ID,
 			RepoUUID: setupResult.RepoID,
 			RepoName: setupResult.RepoName,
@@ -333,7 +333,7 @@ func TestE2EMultiUserScenario(t *testing.T) {
 		msgFormat := git.CommitMessageFormats{}
 		_ = setupResult.Repository.CommitFile(filePath, msgFormat.CreateMemory(slug))
 
-		dbMem := &database.MimirMemory{
+		dbMem := &database.MedhaMemory{
 			UserID:   user.ID,
 			RepoID:   dbRepo.ID,
 			Slug:     slug,
@@ -346,11 +346,11 @@ func TestE2EMultiUserScenario(t *testing.T) {
 	}
 
 	// Verify user isolation
-	var user1Memories []database.MimirMemory
+	var user1Memories []database.MedhaMemory
 	db.Where("user_id = ?", users[0].ID).Find(&user1Memories)
 	assert.Equal(t, 1, len(user1Memories))
 
-	var user2Memories []database.MimirMemory
+	var user2Memories []database.MedhaMemory
 	db.Where("user_id = ?", users[1].ID).Find(&user2Memories)
 	assert.Equal(t, 1, len(user2Memories))
 

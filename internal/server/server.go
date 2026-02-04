@@ -6,9 +6,9 @@ package server
 
 import (
 	"github.com/mark3labs/mcp-go/server"
-	"github.com/tejzpr/mimir-mcp/internal/auth"
-	"github.com/tejzpr/mimir-mcp/internal/config"
-	"github.com/tejzpr/mimir-mcp/internal/tools"
+	"github.com/tejzpr/medha-mcp/internal/auth"
+	"github.com/tejzpr/medha-mcp/internal/config"
+	"github.com/tejzpr/medha-mcp/internal/tools"
 	"gorm.io/gorm"
 )
 
@@ -25,7 +25,7 @@ type MCPServer struct {
 func NewMCPServer(cfg *config.Config, db *gorm.DB, encryptionKey []byte) (*MCPServer, error) {
 	// Create MCP server
 	mcpServer := server.NewMCPServer(
-		"Mimir",
+		"Medha",
 		"1.0.0",
 		server.WithToolCapabilities(true),
 	)
@@ -55,25 +55,25 @@ func (s *MCPServer) RegisterToolsForUser(userID uint, repoPath string) error {
 	// These tools express intent rather than implementation, making them
 	// easier for LLMs to use correctly.
 	
-	// mimir_recall: Smart retrieval - "What do I know about X?"
+	// medha_recall: Smart retrieval - "What do I know about X?"
 	s.mcpServer.AddTool(tools.NewRecallTool(), tools.RecallHandler(toolCtx, userID))
 	
-	// mimir_remember: Store/update information - "Store this for later"
+	// medha_remember: Store/update information - "Store this for later"
 	s.mcpServer.AddTool(tools.NewRememberTool(), tools.RememberHandler(toolCtx, userID))
 	
-	// mimir_history: Temporal queries - "When did I learn about X?"
+	// medha_history: Temporal queries - "When did I learn about X?"
 	s.mcpServer.AddTool(tools.NewHistoryTool(), tools.HistoryHandler(toolCtx, userID))
 	
-	// mimir_connect: Link/unlink memories - "These are related"
+	// medha_connect: Link/unlink memories - "These are related"
 	s.mcpServer.AddTool(tools.NewConnectTool(), tools.ConnectHandler(toolCtx, userID))
 	
-	// mimir_forget: Archive memories - "No longer relevant"
+	// medha_forget: Archive memories - "No longer relevant"
 	s.mcpServer.AddTool(tools.NewForgetTool(), tools.ForgetHandler(toolCtx, userID))
 	
-	// mimir_restore: Undelete memories - "Bring back that archived memory"
+	// medha_restore: Undelete memories - "Bring back that archived memory"
 	s.mcpServer.AddTool(tools.NewRestoreTool(), tools.RestoreHandler(toolCtx, userID))
 	
-	// mimir_sync: Git synchronization (kept for explicit sync operations)
+	// medha_sync: Git synchronization (kept for explicit sync operations)
 	s.mcpServer.AddTool(tools.NewSyncTool(), tools.SyncHandler(toolCtx, userID, s.encryptionKey))
 
 	return nil

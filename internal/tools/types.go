@@ -5,9 +5,9 @@
 package tools
 
 import (
-	"github.com/tejzpr/mimir-mcp/internal/database"
-	"github.com/tejzpr/mimir-mcp/internal/git"
-	"github.com/tejzpr/mimir-mcp/internal/memory"
+	"github.com/tejzpr/medha-mcp/internal/database"
+	"github.com/tejzpr/medha-mcp/internal/git"
+	"github.com/tejzpr/medha-mcp/internal/memory"
 	"gorm.io/gorm"
 )
 
@@ -31,8 +31,8 @@ func (tc *ToolContext) GetRepository() (*git.Repository, error) {
 }
 
 // GetMemoryBySlug retrieves a memory from the database by slug
-func (tc *ToolContext) GetMemoryBySlug(slug string) (*database.MimirMemory, error) {
-	var mem database.MimirMemory
+func (tc *ToolContext) GetMemoryBySlug(slug string) (*database.MedhaMemory, error) {
+	var mem database.MedhaMemory
 	err := tc.DB.Where("slug = ?", slug).First(&mem).Error
 	return &mem, err
 }

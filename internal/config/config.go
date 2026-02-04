@@ -14,12 +14,12 @@ import (
 
 const (
 	// DefaultConfigDir is the default configuration directory
-	DefaultConfigDir = ".mimir/configs"
+	DefaultConfigDir = ".medha/configs"
 	// DefaultConfigFile is the default configuration filename
 	DefaultConfigFile = "config.json"
 )
 
-// Load reads configuration from ~/.mimir/configs/config.json
+// Load reads configuration from ~/.medha/configs/config.json
 func Load() (*Config, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -94,7 +94,7 @@ func setDefaults(v *viper.Viper) {
 	// Database defaults
 	v.SetDefault("database.type", "sqlite")
 	homeDir, _ := os.UserHomeDir()
-	v.SetDefault("database.sqlite_path", filepath.Join(homeDir, ".mimir/db/mimir.db"))
+	v.SetDefault("database.sqlite_path", filepath.Join(homeDir, ".medha/db/medha.db"))
 
 	// Git defaults
 	v.SetDefault("git.default_branch", "main")
@@ -202,7 +202,7 @@ func DefaultConfig() *Config {
 		},
 		Database: DatabaseConfig{
 			Type:       "sqlite",
-			SQLitePath: filepath.Join(homeDir, ".mimir/db/mimir.db"),
+			SQLitePath: filepath.Join(homeDir, ".medha/db/medha.db"),
 		},
 		Auth: AuthConfig{
 			Type: "local",

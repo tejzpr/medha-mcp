@@ -12,16 +12,16 @@ import (
 	"time"
 
 	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/tejzpr/mimir-mcp/internal/database"
-	"github.com/tejzpr/mimir-mcp/internal/git"
-	"github.com/tejzpr/mimir-mcp/internal/memory"
+	"github.com/tejzpr/medha-mcp/internal/database"
+	"github.com/tejzpr/medha-mcp/internal/git"
+	"github.com/tejzpr/medha-mcp/internal/memory"
 	"gorm.io/gorm"
 )
 
-// NewRestoreTool creates the mimir_restore tool definition
+// NewRestoreTool creates the medha_restore tool definition
 func NewRestoreTool() mcp.Tool {
-	return mcp.NewTool("mimir_restore",
-		mcp.WithDescription("Restore an archived memory. Brings an archived memory back to active status. Use mimir_recall with list_all to find archived memories and their slugs."),
+	return mcp.NewTool("medha_restore",
+		mcp.WithDescription("Restore an archived memory. Brings an archived memory back to active status. Use medha_recall with list_all to find archived memories and their slugs."),
 		mcp.WithString("slug",
 			mcp.Required(),
 			mcp.Description("Slug of the archived memory to restore"),
@@ -29,7 +29,7 @@ func NewRestoreTool() mcp.Tool {
 	)
 }
 
-// RestoreHandler handles the mimir_restore tool
+// RestoreHandler handles the medha_restore tool
 func RestoreHandler(ctx *ToolContext, userID uint) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(c context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		slug, err := request.RequireString("slug")
@@ -38,7 +38,7 @@ func RestoreHandler(ctx *ToolContext, userID uint) func(context.Context, mcp.Cal
 		}
 
 		// Get memory including soft-deleted ones
-		var mem database.MimirMemory
+		var mem database.MedhaMemory
 		if err := ctx.DB.Unscoped().Where("slug = ? AND user_id = ?", slug, userID).First(&mem).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
 				return mcp.NewToolResultError(fmt.Sprintf("memory not found: %s", slug)), nil

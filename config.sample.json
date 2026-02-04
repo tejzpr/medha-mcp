@@ -10,7 +10,7 @@
   },
   "database": {
     "type": "sqlite",
-    "sqlite_path": "~/.mimir/db/mimir.db",
+    "sqlite_path": "~/.medha/db/medha.db",
     "postgres_dsn": ""
   },
   "auth": {

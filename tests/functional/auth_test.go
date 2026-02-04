@@ -12,14 +12,14 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tejzpr/mimir-mcp/internal/auth"
-	"github.com/tejzpr/mimir-mcp/internal/database"
-	"github.com/tejzpr/mimir-mcp/internal/git"
+	"github.com/tejzpr/medha-mcp/internal/auth"
+	"github.com/tejzpr/medha-mcp/internal/database"
+	"github.com/tejzpr/medha-mcp/internal/git"
 	"gorm.io/gorm/logger"
 )
 
 // TestLocalAuthFlow tests the complete local authentication flow
-// This simulates what happens when a user runs mimir locally via Cursor
+// This simulates what happens when a user runs medha locally via Cursor
 func TestLocalAuthFlow(t *testing.T) {
 	tempDir := t.TempDir()
 	dbPath := filepath.Join(tempDir, "test.db")
@@ -59,7 +59,7 @@ func TestLocalAuthFlow(t *testing.T) {
 	}
 
 	// Check if repo already exists in DB
-	var existingRepo database.MimirGitRepo
+	var existingRepo database.MedhaGitRepo
 	err = db.Where("user_id = ?", user.ID).First(&existingRepo).Error
 	if err != nil {
 		// Create new repository
@@ -68,7 +68,7 @@ func TestLocalAuthFlow(t *testing.T) {
 		t.Logf("✓ Repository created: %s at %s", result.RepoName, result.RepoPath)
 
 		// Store repo in database
-		dbRepo := &database.MimirGitRepo{
+		dbRepo := &database.MedhaGitRepo{
 			UserID:   user.ID,
 			RepoUUID: result.RepoID,
 			RepoName: result.RepoName,
@@ -78,12 +78,12 @@ func TestLocalAuthFlow(t *testing.T) {
 	}
 
 	// 4. Verify repository setup
-	var repo database.MimirGitRepo
+	var repo database.MedhaGitRepo
 	err = db.Where("user_id = ?", user.ID).First(&repo).Error
 	require.NoError(t, err)
 
 	// Verify folder name is deterministic based on local username
-	expectedRepoName := fmt.Sprintf("mimir-%s", user.Username)
+	expectedRepoName := fmt.Sprintf("medha-%s", user.Username)
 	assert.Equal(t, expectedRepoName, repo.RepoName)
 	assert.Equal(t, user.Username, repo.RepoUUID) // RepoUUID now stores username
 	t.Logf("✓ Repository verified: %s", repo.RepoPath)
@@ -122,7 +122,7 @@ func TestSAMLAuthFlow(t *testing.T) {
 	samlEmail := "john.doe@company.com"
 
 	// Create user as SAML would
-	user := &database.MimirUser{
+	user := &database.MedhaUser{
 		Username: samlUsername,
 		Email:    samlEmail,
 	}
@@ -142,7 +142,7 @@ func TestSAMLAuthFlow(t *testing.T) {
 	t.Logf("✓ Repository created: %s at %s", setupResult.RepoName, setupResult.RepoPath)
 
 	// Store repo in database
-	dbRepo := &database.MimirGitRepo{
+	dbRepo := &database.MedhaGitRepo{
 		UserID:   user.ID,
 		RepoUUID: setupResult.RepoID,
 		RepoName: setupResult.RepoName,
@@ -151,12 +151,12 @@ func TestSAMLAuthFlow(t *testing.T) {
 	db.Create(dbRepo)
 
 	// 4. Verify repository setup
-	var repo database.MimirGitRepo
+	var repo database.MedhaGitRepo
 	err = db.Where("user_id = ?", user.ID).First(&repo).Error
 	require.NoError(t, err)
 
 	// Verify folder name is deterministic based on SAML username
-	expectedRepoName := fmt.Sprintf("mimir-%s", samlUsername)
+	expectedRepoName := fmt.Sprintf("medha-%s", samlUsername)
 	assert.Equal(t, expectedRepoName, repo.RepoName)
 	assert.Equal(t, samlUsername, repo.RepoUUID)
 	t.Logf("✓ Repository verified: %s", repo.RepoPath)
@@ -197,7 +197,7 @@ func TestRecoveryScenario(t *testing.T) {
 	require.NoError(t, err)
 
 	// 2. Create user
-	user := &database.MimirUser{
+	user := &database.MedhaUser{
 		Username: username,
 		Email:    username + "@local",
 	}
@@ -215,7 +215,7 @@ func TestRecoveryScenario(t *testing.T) {
 	t.Logf("✓ Initial repository created: %s", result1.RepoPath)
 
 	// Store in DB
-	dbRepo := &database.MimirGitRepo{
+	dbRepo := &database.MedhaGitRepo{
 		UserID:   user.ID,
 		RepoUUID: result1.RepoID,
 		RepoName: result1.RepoName,
@@ -224,11 +224,11 @@ func TestRecoveryScenario(t *testing.T) {
 	db.Create(dbRepo)
 
 	// 4. Simulate database reset (delete repo record)
-	db.Unscoped().Delete(&database.MimirGitRepo{}, "user_id = ?", user.ID)
+	db.Unscoped().Delete(&database.MedhaGitRepo{}, "user_id = ?", user.ID)
 
 	// Verify DB is empty
 	var count int64
-	db.Model(&database.MimirGitRepo{}).Where("user_id = ?", user.ID).Count(&count)
+	db.Model(&database.MedhaGitRepo{}).Where("user_id = ?", user.ID).Count(&count)
 	assert.Equal(t, int64(0), count)
 	t.Log("✓ Simulated database reset (repo record deleted)")
 
@@ -240,16 +240,16 @@ func TestRecoveryScenario(t *testing.T) {
 	// 6. Attempt recovery - check for existing folder
 	expectedRepoPath := git.GetUserRepositoryPath(storePath, username)
 
-	var existingRepo database.MimirGitRepo
+	var existingRepo database.MedhaGitRepo
 	err = db.Where("user_id = ?", user.ID).First(&existingRepo).Error
 	if err != nil {
 		// No repo in database, check if folder exists on disk (recovery scenario)
 		if _, statErr := os.Stat(expectedRepoPath); statErr == nil {
 			// Folder exists but not in DB - recover by adding to DB
-			recoveredRepo := &database.MimirGitRepo{
+			recoveredRepo := &database.MedhaGitRepo{
 				UserID:   user.ID,
 				RepoUUID: username,
-				RepoName: fmt.Sprintf("mimir-%s", username),
+				RepoName: fmt.Sprintf("medha-%s", username),
 				RepoPath: expectedRepoPath,
 			}
 			db.Create(recoveredRepo)
@@ -258,7 +258,7 @@ func TestRecoveryScenario(t *testing.T) {
 	}
 
 	// 7. Verify recovery worked
-	var recoveredRepo database.MimirGitRepo
+	var recoveredRepo database.MedhaGitRepo
 	err = db.Where("user_id = ?", user.ID).First(&recoveredRepo).Error
 	require.NoError(t, err)
 	assert.Equal(t, expectedRepoPath, recoveredRepo.RepoPath)
@@ -288,7 +288,7 @@ func TestNoNewFolderOnRestart(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create user
-	user := &database.MimirUser{
+	user := &database.MedhaUser{
 		Username: username,
 		Email:    username + "@local",
 	}
@@ -303,14 +303,14 @@ func TestNoNewFolderOnRestart(t *testing.T) {
 			LocalOnly:     true,
 		}
 
-		var existingRepo database.MimirGitRepo
+		var existingRepo database.MedhaGitRepo
 		err = db.Where("user_id = ?", user.ID).First(&existingRepo).Error
 		if err != nil {
 			result, err := git.SetupUserRepository(setupCfg)
 			require.NoError(t, err)
 			repo1Path = result.RepoPath
 
-			dbRepo := &database.MimirGitRepo{
+			dbRepo := &database.MedhaGitRepo{
 				UserID:   user.ID,
 				RepoUUID: result.RepoID,
 				RepoName: result.RepoName,
@@ -337,7 +337,7 @@ func TestNoNewFolderOnRestart(t *testing.T) {
 			LocalOnly:     true,
 		}
 
-		var existingRepo database.MimirGitRepo
+		var existingRepo database.MedhaGitRepo
 		err = db.Where("user_id = ?", user.ID).First(&existingRepo).Error
 		if err != nil {
 			// This should NOT happen - repo should exist
@@ -396,7 +396,7 @@ func TestMultipleSAMLUsers(t *testing.T) {
 
 	for _, samlUser := range samlUsers {
 		// Create user
-		user := &database.MimirUser{
+		user := &database.MedhaUser{
 			Username: samlUser.username,
 			Email:    samlUser.email,
 		}
@@ -413,7 +413,7 @@ func TestMultipleSAMLUsers(t *testing.T) {
 		require.NoError(t, err)
 
 		// Store in DB
-		dbRepo := &database.MimirGitRepo{
+		dbRepo := &database.MedhaGitRepo{
 			UserID:   user.ID,
 			RepoUUID: result.RepoID,
 			RepoName: result.RepoName,
@@ -475,7 +475,7 @@ func TestMixedLocalAndSAMLUsers(t *testing.T) {
 
 	for _, u := range users {
 		// Create user
-		user := &database.MimirUser{
+		user := &database.MedhaUser{
 			Username: u.username,
 			Email:    u.email,
 		}
@@ -492,11 +492,11 @@ func TestMixedLocalAndSAMLUsers(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify naming
-		expectedName := fmt.Sprintf("mimir-%s", u.username)
+		expectedName := fmt.Sprintf("medha-%s", u.username)
 		assert.Equal(t, expectedName, result.RepoName)
 
 		// Store in DB
-		dbRepo := &database.MimirGitRepo{
+		dbRepo := &database.MedhaGitRepo{
 			UserID:   user.ID,
 			RepoUUID: result.RepoID,
 			RepoName: result.RepoName,

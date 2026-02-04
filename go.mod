@@ -1,4 +1,4 @@
-module github.com/tejzpr/mimir-mcp
+module github.com/tejzpr/medha-mcp
 
 go 1.24.0
 

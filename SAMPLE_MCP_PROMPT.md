@@ -1,4 +1,4 @@
-# Mimir MCP Instructions
+# Medha MCP Instructions
 
 Git-backed AI memory system. **Recall before answering, store after solving.**
 
@@ -6,17 +6,17 @@ Git-backed AI memory system. **Recall before answering, store after solving.**
 
 | Tool | Intent |
 |------|--------|
-| `mimir_recall` | Find stored information (use `topic`, `exact`, or `list_all`) |
-| `mimir_remember` | Create/update memories (requires `title`, `content`) |
-| `mimir_history` | View changes over time |
-| `mimir_connect` | Link related memories |
-| `mimir_forget` | Archive outdated info |
-| `mimir_restore` | Undelete archived memories |
-| `mimir_sync` | Manual git sync |
+| `medha_recall` | Find stored information (use `topic`, `exact`, or `list_all`) |
+| `medha_remember` | Create/update memories (requires `title`, `content`) |
+| `medha_history` | View changes over time |
+| `medha_connect` | Link related memories |
+| `medha_forget` | Archive outdated info |
+| `medha_restore` | Undelete archived memories |
+| `medha_sync` | Manual git sync |
 
 ## Key Behaviors
 
-1. **Check first** - Use `mimir_recall` before answering questions
+1. **Check first** - Use `medha_recall` before answering questions
 2. **Store valuable info** - Decisions, solutions, context, action items
 3. **Supersede, don't duplicate** - Use `replaces` param when updating
 4. **Connect while storing** - Use `connections` param to link memories

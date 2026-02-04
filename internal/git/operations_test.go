@@ -62,7 +62,7 @@ func TestAddAndCommit(t *testing.T) {
 	commit, err := repo.GetLastCommit()
 	require.NoError(t, err)
 	assert.Equal(t, "Add two files", commit.Message)
-	assert.Equal(t, "Mimir", commit.Author.Name)
+	assert.Equal(t, "Medha", commit.Author.Name)
 }
 
 func TestCommitAll(t *testing.T) {
@@ -177,7 +177,7 @@ func TestCommitMessageFormats(t *testing.T) {
 		{
 			name:     "initial commit",
 			result:   msgFormat.InitialCommit(),
-			expected: "chore: Initialize Mimir repository",
+			expected: "chore: Initialize Medha repository",
 		},
 	}
 
@@ -201,7 +201,7 @@ func TestSetupUserRepository(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "testuser", result.RepoID)
-	assert.Equal(t, "mimir-testuser", result.RepoName)
+	assert.Equal(t, "medha-testuser", result.RepoName)
 	assert.NotEmpty(t, result.RepoPath)
 	assert.NotNil(t, result.Repository)
 
@@ -252,8 +252,8 @@ func TestSetupUserRepository_LocalUsername(t *testing.T) {
 
 	// Verify deterministic naming
 	assert.Equal(t, localUsername, result.RepoID)
-	assert.Equal(t, "mimir-localuser", result.RepoName)
-	expectedPath := filepath.Join(tempDir, "mimir-localuser")
+	assert.Equal(t, "medha-localuser", result.RepoName)
+	expectedPath := filepath.Join(tempDir, "medha-localuser")
 	assert.Equal(t, expectedPath, result.RepoPath)
 
 	// Verify folder exists
@@ -285,8 +285,8 @@ func TestSetupUserRepository_SAMLUsername(t *testing.T) {
 
 	// Verify deterministic naming with email
 	assert.Equal(t, samlUsername, result.RepoID)
-	assert.Equal(t, "mimir-john.doe@company.com", result.RepoName)
-	expectedPath := filepath.Join(tempDir, "mimir-john.doe@company.com")
+	assert.Equal(t, "medha-john.doe@company.com", result.RepoName)
+	expectedPath := filepath.Join(tempDir, "medha-john.doe@company.com")
 	assert.Equal(t, expectedPath, result.RepoPath)
 
 	// Verify folder exists
@@ -346,11 +346,11 @@ func TestSetupUserRepository_DeterministicNaming(t *testing.T) {
 		username     string
 		expectedName string
 	}{
-		{"alice", "mimir-alice"},
-		{"bob.smith", "mimir-bob.smith"},
-		{"charlie@example.com", "mimir-charlie@example.com"},
-		{"user_with_underscore", "mimir-user_with_underscore"},
-		{"User123", "mimir-User123"},
+		{"alice", "medha-alice"},
+		{"bob.smith", "medha-bob.smith"},
+		{"charlie@example.com", "medha-charlie@example.com"},
+		{"user_with_underscore", "medha-user_with_underscore"},
+		{"User123", "medha-User123"},
 	}
 
 	for _, tc := range testCases {
@@ -427,9 +427,9 @@ func TestGetUserRepositoryPath(t *testing.T) {
 		username string
 		expected string
 	}{
-		{"/home/user/.mimir/store", "localuser", "/home/user/.mimir/store/mimir-localuser"},
-		{"/home/user/.mimir/store", "john.doe@company.com", "/home/user/.mimir/store/mimir-john.doe@company.com"},
-		{"/var/mimir", "admin", "/var/mimir/mimir-admin"},
+		{"/home/user/.medha/store", "localuser", "/home/user/.medha/store/medha-localuser"},
+		{"/home/user/.medha/store", "john.doe@company.com", "/home/user/.medha/store/medha-john.doe@company.com"},
+		{"/var/medha", "admin", "/var/medha/medha-admin"},
 	}
 
 	for _, tc := range testCases {

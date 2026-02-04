@@ -12,10 +12,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tejzpr/mimir-mcp/internal/database"
-	"github.com/tejzpr/mimir-mcp/internal/git"
-	"github.com/tejzpr/mimir-mcp/internal/memory"
-	"github.com/tejzpr/mimir-mcp/internal/rebuild"
+	"github.com/tejzpr/medha-mcp/internal/database"
+	"github.com/tejzpr/medha-mcp/internal/git"
+	"github.com/tejzpr/medha-mcp/internal/memory"
+	"github.com/tejzpr/medha-mcp/internal/rebuild"
 	"gorm.io/gorm/logger"
 )
 
@@ -29,14 +29,14 @@ func setupTestDB(t *testing.T, dbPath string) *database.Config {
 }
 
 // createTestUser creates a test user in the database
-func createTestUser(t *testing.T, db *database.Config, username string) (*database.MimirUser, func()) {
+func createTestUser(t *testing.T, db *database.Config, username string) (*database.MedhaUser, func()) {
 	conn, err := database.Connect(db)
 	require.NoError(t, err)
 
 	err = database.Migrate(conn)
 	require.NoError(t, err)
 
-	user := &database.MimirUser{
+	user := &database.MedhaUser{
 		Username: username,
 		Email:    username + "@test.local",
 	}
@@ -46,7 +46,7 @@ func createTestUser(t *testing.T, db *database.Config, username string) (*databa
 }
 
 // createTestRepo creates a test git repository and database record
-func createTestRepo(t *testing.T, dbCfg *database.Config, userID uint, repoPath string) *database.MimirGitRepo {
+func createTestRepo(t *testing.T, dbCfg *database.Config, userID uint, repoPath string) *database.MedhaGitRepo {
 	conn, err := database.Connect(dbCfg)
 	require.NoError(t, err)
 	defer database.Close(conn)
@@ -56,7 +56,7 @@ func createTestRepo(t *testing.T, dbCfg *database.Config, userID uint, repoPath 
 	require.NoError(t, err)
 
 	// Create database record
-	repo := &database.MimirGitRepo{
+	repo := &database.MedhaGitRepo{
 		UserID:   userID,
 		RepoUUID: "test-uuid",
 		RepoName: "test-repo",
@@ -130,7 +130,7 @@ func TestRebuildFromEmptyDatabase(t *testing.T) {
 	defer database.Close(conn)
 
 	var countBefore int64
-	conn.Model(&database.MimirMemory{}).Count(&countBefore)
+	conn.Model(&database.MedhaMemory{}).Count(&countBefore)
 	assert.Equal(t, int64(0), countBefore)
 
 	// Run rebuild
@@ -144,12 +144,12 @@ func TestRebuildFromEmptyDatabase(t *testing.T) {
 
 	// Verify memories in DB
 	var countAfter int64
-	conn.Model(&database.MimirMemory{}).Count(&countAfter)
+	conn.Model(&database.MedhaMemory{}).Count(&countAfter)
 	assert.Equal(t, int64(2), countAfter)
 
 	// Verify tags created
 	var tagCount int64
-	conn.Model(&database.MimirTag{}).Count(&tagCount)
+	conn.Model(&database.MedhaTag{}).Count(&tagCount)
 	assert.Equal(t, int64(3), tagCount) // tag1, tag2, tag3
 }
 
@@ -207,7 +207,7 @@ func TestRebuildNoDuplicates(t *testing.T) {
 
 	// Verify exactly 2 memories in DB
 	var countAfter int64
-	conn.Model(&database.MimirMemory{}).Count(&countAfter)
+	conn.Model(&database.MedhaMemory{}).Count(&countAfter)
 	assert.Equal(t, int64(2), countAfter)
 }
 
@@ -229,7 +229,7 @@ func TestRebuildRequiresForceWithData(t *testing.T) {
 	require.NoError(t, err)
 	defer database.Close(conn)
 
-	dbMem := &database.MimirMemory{
+	dbMem := &database.MedhaMemory{
 		UserID:   user.ID,
 		RepoID:   repo.ID,
 		Slug:     "existing-memory",
@@ -265,7 +265,7 @@ func TestRebuildForceOverwrites(t *testing.T) {
 	defer database.Close(conn)
 
 	for i := 0; i < 5; i++ {
-		dbMem := &database.MimirMemory{
+		dbMem := &database.MedhaMemory{
 			UserID:   user.ID,
 			RepoID:   repo.ID,
 			Slug:     "old-memory-" + string(rune('a'+i)),
@@ -276,7 +276,7 @@ func TestRebuildForceOverwrites(t *testing.T) {
 	}
 
 	var countBefore int64
-	conn.Model(&database.MimirMemory{}).Count(&countBefore)
+	conn.Model(&database.MedhaMemory{}).Count(&countBefore)
 	assert.Equal(t, int64(5), countBefore)
 
 	// Write different memories to git
@@ -298,7 +298,7 @@ func TestRebuildForceOverwrites(t *testing.T) {
 
 	// Should now have 3 (from git), not 5 or 8
 	var countAfter int64
-	conn.Model(&database.MimirMemory{}).Count(&countAfter)
+	conn.Model(&database.MedhaMemory{}).Count(&countAfter)
 	assert.Equal(t, int64(3), countAfter)
 	assert.Equal(t, 3, result.MemoriesCreated)
 }
@@ -352,11 +352,11 @@ func TestRebuildWithAssociations(t *testing.T) {
 	assert.Equal(t, 1, result.AssociationsCreated)
 
 	var assocCount int64
-	conn.Model(&database.MimirMemoryAssociation{}).Count(&assocCount)
+	conn.Model(&database.MedhaMemoryAssociation{}).Count(&assocCount)
 	assert.Equal(t, int64(1), assocCount)
 
 	// Verify association details
-	var assoc database.MimirMemoryAssociation
+	var assoc database.MedhaMemoryAssociation
 	conn.First(&assoc)
 	assert.Equal(t, "related_to", assoc.AssociationType)
 	assert.Equal(t, 0.8, assoc.Strength)
@@ -410,20 +410,20 @@ func TestRebuildHandlesArchived(t *testing.T) {
 	assert.Equal(t, 2, result.MemoriesCreated)
 
 	// Verify active memory is not deleted
-	var activeMem2 database.MimirMemory
+	var activeMem2 database.MedhaMemory
 	err = conn.Where("slug = ?", "active-memory").First(&activeMem2).Error
 	require.NoError(t, err)
 	assert.False(t, activeMem2.DeletedAt.Valid)
 
 	// Verify archived memory has deleted_at set
-	var archivedMem2 database.MimirMemory
+	var archivedMem2 database.MedhaMemory
 	err = conn.Unscoped().Where("slug = ?", "archived-memory").First(&archivedMem2).Error
 	require.NoError(t, err)
 	assert.True(t, archivedMem2.DeletedAt.Valid)
 }
 
 // TestRebuildSupersededStatus tests that superseded_by frontmatter is restored after rebuild
-// This is a regression test for: https://github.com/tejzpr/mimir-mcp/issues/X
+// This is a regression test for: https://github.com/tejzpr/medha-mcp/issues/X
 // When a memory is superseded, the superseded_by field should be in the markdown frontmatter
 // and should be restored when the database is rebuilt
 func TestRebuildSupersededStatus(t *testing.T) {
@@ -471,25 +471,25 @@ func TestRebuildSupersededStatus(t *testing.T) {
 	assert.Equal(t, 2, result.MemoriesCreated)
 
 	// Verify superseded_by was restored in database
-	var oldMemDB database.MimirMemory
+	var oldMemDB database.MedhaMemory
 	err = conn.Where("slug = ?", "memory-v1").First(&oldMemDB).Error
 	require.NoError(t, err)
 	require.NotNil(t, oldMemDB.SupersededBy, "superseded_by should not be nil")
 	assert.Equal(t, "memory-v2", *oldMemDB.SupersededBy)
 
 	// Verify new memory is not superseded
-	var newMemDB database.MimirMemory
+	var newMemDB database.MedhaMemory
 	err = conn.Where("slug = ?", "memory-v2").First(&newMemDB).Error
 	require.NoError(t, err)
 	assert.Nil(t, newMemDB.SupersededBy)
 
 	// Now simulate database deletion and rebuild - this is the bug scenario
 	// Clear all memories from DB
-	conn.Unscoped().Where("user_id = ?", user.ID).Delete(&database.MimirMemory{})
+	conn.Unscoped().Where("user_id = ?", user.ID).Delete(&database.MedhaMemory{})
 
 	// Verify memories are gone
 	var countBefore int64
-	conn.Model(&database.MimirMemory{}).Count(&countBefore)
+	conn.Model(&database.MedhaMemory{}).Count(&countBefore)
 	assert.Equal(t, int64(0), countBefore)
 
 	// Rebuild from git - superseded_by should be restored from frontmatter
@@ -498,7 +498,7 @@ func TestRebuildSupersededStatus(t *testing.T) {
 	assert.Equal(t, 2, result2.MemoriesCreated)
 
 	// Verify superseded_by is STILL present after rebuild
-	var oldMemDBAfter database.MimirMemory
+	var oldMemDBAfter database.MedhaMemory
 	err = conn.Where("slug = ?", "memory-v1").First(&oldMemDBAfter).Error
 	require.NoError(t, err)
 	require.NotNil(t, oldMemDBAfter.SupersededBy, "superseded_by should be restored from frontmatter")
@@ -551,6 +551,6 @@ func TestRebuildIdempotent(t *testing.T) {
 
 	// Verify still only 1 memory
 	var count int64
-	conn.Model(&database.MimirMemory{}).Count(&count)
+	conn.Model(&database.MedhaMemory{}).Count(&count)
 	assert.Equal(t, int64(1), count)
 }

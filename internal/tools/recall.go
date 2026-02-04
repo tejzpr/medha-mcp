@@ -13,23 +13,23 @@ import (
 	"time"
 
 	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/tejzpr/mimir-mcp/internal/database"
-	"github.com/tejzpr/mimir-mcp/internal/git"
-	"github.com/tejzpr/mimir-mcp/internal/graph"
-	"github.com/tejzpr/mimir-mcp/internal/memory"
+	"github.com/tejzpr/medha-mcp/internal/database"
+	"github.com/tejzpr/medha-mcp/internal/git"
+	"github.com/tejzpr/medha-mcp/internal/graph"
+	"github.com/tejzpr/medha-mcp/internal/memory"
 )
 
 // RecallResult represents a memory retrieval result with ranking score
 type RecallResult struct {
-	Memory      *database.MimirMemory
+	Memory      *database.MedhaMemory
 	Content     *memory.Memory
 	Score       float64
 	MatchSource string // "title", "content", "tag", "grep", "association"
 }
 
-// NewRecallTool creates the mimir_recall tool definition
+// NewRecallTool creates the medha_recall tool definition
 func NewRecallTool() mcp.Tool {
-	return mcp.NewTool("mimir_recall",
+	return mcp.NewTool("medha_recall",
 		mcp.WithDescription("Find and retrieve information from memory. This is the primary tool for getting information - use it whenever you need to know something. It searches everything: titles, content, tags, associations. Returns full content, ranked by relevance."),
 		mcp.WithString("topic",
 			mcp.Description("What you want to know about. Can be a question, keywords, or topic. Examples: 'authentication approach', 'what did we decide about caching', 'TODO items'"),
@@ -55,7 +55,7 @@ func NewRecallTool() mcp.Tool {
 	)
 }
 
-// RecallHandler handles the mimir_recall tool
+// RecallHandler handles the medha_recall tool
 func RecallHandler(ctx *ToolContext, userID uint) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(c context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		topic := request.GetString("topic", "")
@@ -67,7 +67,7 @@ func RecallHandler(ctx *ToolContext, userID uint) func(context.Context, mcp.Call
 		limit := int(request.GetFloat("limit", 10.0))
 
 		// Get user's repo
-		var repo database.MimirGitRepo
+		var repo database.MedhaGitRepo
 		if err := ctx.DB.Where("user_id = ?", userID).First(&repo).Error; err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("failed to get user repository: %v", err)), nil
 		}
@@ -128,7 +128,7 @@ func listAllMemories(ctx *ToolContext, userID uint, pathFilter string, includeSu
 		query = query.Unscoped()
 	}
 
-	var memories []database.MimirMemory
+	var memories []database.MedhaMemory
 	query.Order("updated_at DESC").Find(&memories)
 
 	var results []RecallResult
@@ -185,7 +185,7 @@ func searchTitle(ctx *ToolContext, userID uint, topic string, resultMap map[uint
 		query = query.Where("superseded_by IS NULL")
 	}
 
-	var memories []database.MimirMemory
+	var memories []database.MedhaMemory
 	query.Find(&memories)
 
 	for i := range memories {
@@ -208,21 +208,21 @@ func searchTitle(ctx *ToolContext, userID uint, topic string, resultMap map[uint
 func searchTags(ctx *ToolContext, userID uint, topic string, resultMap map[uint]*RecallResult, includeSuperseded bool) {
 	// Find tags matching topic
 	var tagIDs []uint
-	ctx.DB.Model(&database.MimirTag{}).Where("name LIKE ?", "%"+topic+"%").Pluck("id", &tagIDs)
+	ctx.DB.Model(&database.MedhaTag{}).Where("name LIKE ?", "%"+topic+"%").Pluck("id", &tagIDs)
 	if len(tagIDs) == 0 {
 		return
 	}
 
 	// Find memories with these tags
 	var memoryIDs []uint
-	ctx.DB.Model(&database.MimirMemoryTag{}).Where("tag_id IN ?", tagIDs).Distinct("memory_id").Pluck("memory_id", &memoryIDs)
+	ctx.DB.Model(&database.MedhaMemoryTag{}).Where("tag_id IN ?", tagIDs).Distinct("memory_id").Pluck("memory_id", &memoryIDs)
 
 	query := ctx.DB.Where("user_id = ? AND id IN ?", userID, memoryIDs)
 	if !includeSuperseded {
 		query = query.Where("superseded_by IS NULL")
 	}
 
-	var memories []database.MimirMemory
+	var memories []database.MedhaMemory
 	query.Find(&memories)
 
 	for i := range memories {
@@ -260,10 +260,10 @@ func searchContent(ctx *ToolContext, userID uint, topic string, resultMap map[ui
 		query = query.Where("superseded_by IS NULL")
 	}
 
-	var memories []database.MimirMemory
+	var memories []database.MedhaMemory
 	query.Find(&memories)
 
-	fileToMem := make(map[string]*database.MimirMemory)
+	fileToMem := make(map[string]*database.MedhaMemory)
 	for i := range memories {
 		relPath := strings.TrimPrefix(memories[i].FilePath, repoPath+"/")
 		fileToMem[relPath] = &memories[i]
@@ -315,7 +315,7 @@ func expandAssociations(ctx *ToolContext, resultMap map[uint]*RecallResult) {
 			}
 
 			if _, exists := resultMap[node.MemoryID]; !exists {
-				var mem database.MimirMemory
+				var mem database.MedhaMemory
 				if err := ctx.DB.First(&mem, node.MemoryID).Error; err != nil {
 					continue
 				}
@@ -350,10 +350,10 @@ func searchExact(ctx *ToolContext, userID uint, exact, pathFilter, repoPath stri
 	}
 
 	// Build file path to memory mapping
-	var memories []database.MimirMemory
+	var memories []database.MedhaMemory
 	ctx.DB.Where("user_id = ?", userID).Find(&memories)
 
-	fileToMem := make(map[string]*database.MimirMemory)
+	fileToMem := make(map[string]*database.MedhaMemory)
 	for i := range memories {
 		relPath := strings.TrimPrefix(memories[i].FilePath, repoPath+"/")
 		fileToMem[relPath] = &memories[i]
@@ -398,7 +398,7 @@ func loadMemoryContent(filePath string) *memory.Memory {
 }
 
 // calculateRecencyScore calculates a recency-based score boost
-func calculateRecencyScore(mem *database.MimirMemory) float64 {
+func calculateRecencyScore(mem *database.MedhaMemory) float64 {
 	daysSinceUpdate := time.Since(mem.UpdatedAt).Hours() / 24
 	if daysSinceUpdate < 1 {
 		return 2.0 // Very recent
@@ -411,7 +411,7 @@ func calculateRecencyScore(mem *database.MimirMemory) float64 {
 }
 
 // updateAccessStats updates access statistics for a memory
-func updateAccessStats(ctx *ToolContext, mem *database.MimirMemory) {
+func updateAccessStats(ctx *ToolContext, mem *database.MedhaMemory) {
 	ctx.DB.Model(mem).Updates(map[string]interface{}{
 		"last_accessed_at": time.Now(),
 		"access_count":     mem.AccessCount + 1,

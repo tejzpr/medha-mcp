@@ -1,18 +1,18 @@
 version: '3.8'
 
 services:
-  mimir:
+  medha:
     build: .
-    container_name: mimir-mcp
+    container_name: medha-mcp
     ports:
       - "8080:8080"
     environment:
       - ENCRYPTION_KEY=${ENCRYPTION_KEY:-your-32-char-encryption-key-here}
     volumes:
       # Persist database and git repos
-      - mimir-data:/home/mimir/.mimir
+      - medha-data:/home/medha/.medha
       # Optional: mount custom config
-      # - ./config.production.json:/home/mimir/.mimir/configs/config.json:ro
+      # - ./config.production.json:/home/medha/.medha/configs/config.json:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"]
@@ -21,4 +21,4 @@ services:
       retries: 3
 
 volumes:
-  mimir-data:
+  medha-data:

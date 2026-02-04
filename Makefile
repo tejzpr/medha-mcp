@@ -2,9 +2,9 @@
 
 # Build the server binary
 build:
-	@echo "Building Mimir MCP server..."
-	@go build -o bin/mimir cmd/server/main.go
-	@echo "Build complete: bin/mimir"
+	@echo "Building Medha MCP server..."
+	@go build -o bin/medha cmd/server/main.go
+	@echo "Build complete: bin/medha"
 
 # Run all tests
 test: test-unit
@@ -42,7 +42,7 @@ run-http-dev:
 # Quick start (stdio mode, no config needed)
 run-quick:
 	@echo "Starting stdio mode with defaults..."
-	@./bin/mimir
+	@./bin/medha
 
 # Clean build artifacts
 clean:
@@ -82,31 +82,31 @@ coverage:
 # Build for multiple platforms
 build-all:
 	@echo "Building for multiple platforms..."
-	@GOOS=linux GOARCH=amd64 go build -o bin/mimir-linux-amd64 cmd/server/main.go
-	@GOOS=darwin GOARCH=amd64 go build -o bin/mimir-darwin-amd64 cmd/server/main.go
-	@GOOS=darwin GOARCH=arm64 go build -o bin/mimir-darwin-arm64 cmd/server/main.go
-	@GOOS=windows GOARCH=amd64 go build -o bin/mimir-windows-amd64.exe cmd/server/main.go
+	@GOOS=linux GOARCH=amd64 go build -o bin/medha-linux-amd64 cmd/server/main.go
+	@GOOS=darwin GOARCH=amd64 go build -o bin/medha-darwin-amd64 cmd/server/main.go
+	@GOOS=darwin GOARCH=arm64 go build -o bin/medha-darwin-arm64 cmd/server/main.go
+	@GOOS=windows GOARCH=amd64 go build -o bin/medha-windows-amd64.exe cmd/server/main.go
 	@echo "Multi-platform build complete"
 
 # Docker commands
 docker-build:
 	@echo "Building Docker image..."
-	@docker build -t mimir-mcp .
+	@docker build -t medha-mcp .
 
 docker-run:
-	@echo "Running Mimir in Docker..."
+	@echo "Running Medha in Docker..."
 	@docker run -d -p 8080:8080 \
 		-e ENCRYPTION_KEY=$${ENCRYPTION_KEY:-your-32-char-encryption-key} \
-		-v mimir-data:/home/mimir/.mimir \
-		--name mimir \
-		mimir-mcp
+		-v medha-data:/home/medha/.medha \
+		--name medha \
+		medha-mcp
 
 docker-stop:
-	@echo "Stopping Mimir container..."
-	@docker stop mimir && docker rm mimir
+	@echo "Stopping Medha container..."
+	@docker stop medha && docker rm medha
 
 docker-logs:
-	@docker logs -f mimir
+	@docker logs -f medha
 
 docker-compose-up:
 	@echo "Starting with docker-compose..."
@@ -118,7 +118,7 @@ docker-compose-down:
 
 # Help
 help:
-	@echo "Mimir MCP - Available commands:"
+	@echo "Medha MCP - Available commands:"
 	@echo ""
 	@echo "Build & Run:"
 	@echo "  make build              - Build the server binary"

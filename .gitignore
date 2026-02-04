@@ -40,5 +40,5 @@ config.json
 *.db-wal
 
 # Local directories
-.mimir/
+.medha/
 impl/

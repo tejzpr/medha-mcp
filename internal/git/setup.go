@@ -12,7 +12,7 @@ import (
 
 // SetupConfig holds configuration for repository setup
 type SetupConfig struct {
-	BaseStorePath string // Base path for all repositories (e.g., ~/.mimir/store)
+	BaseStorePath string // Base path for all repositories (e.g., ~/.medha/store)
 	Username      string // Username for deterministic repo naming (whoami for local, SAML username for remote)
 	RepoURL       string // Optional: URL of existing repository
 	PAT           string // Optional: Personal Access Token for remote operations
@@ -35,7 +35,7 @@ func SetupUserRepository(cfg *SetupConfig) (*SetupResult, error) {
 	if cfg.Username == "" {
 		return nil, fmt.Errorf("username is required for repository setup")
 	}
-	repoName := fmt.Sprintf("mimir-%s", cfg.Username)
+	repoName := fmt.Sprintf("medha-%s", cfg.Username)
 	repoPath := filepath.Join(cfg.BaseStorePath, repoName)
 
 	// Check if repo already exists
@@ -69,7 +69,7 @@ func SetupUserRepository(cfg *SetupConfig) (*SetupResult, error) {
 	// Create initial commit if this is a new repository
 	if cfg.RepoURL == "" || cfg.LocalOnly {
 		readme := filepath.Join(repoPath, "README.md")
-		readmeContent := fmt.Sprintf("# Mimir\n\nOwner: %s\n\nThis repository contains your personal memory storage for Mimir MCP.\n", cfg.Username)
+		readmeContent := fmt.Sprintf("# Medha\n\nOwner: %s\n\nThis repository contains your personal memory storage for Medha MCP.\n", cfg.Username)
 		err = os.WriteFile(readme, []byte(readmeContent), 0644)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create README: %w", err)
@@ -142,5 +142,5 @@ func EnsureStorePath(basePath string) error {
 
 // GetUserRepositoryPath returns the expected path for a user's repository
 func GetUserRepositoryPath(basePath, username string) string {
-	return filepath.Join(basePath, fmt.Sprintf("mimir-%s", username))
+	return filepath.Join(basePath, fmt.Sprintf("medha-%s", username))
 }

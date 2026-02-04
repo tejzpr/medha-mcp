@@ -13,7 +13,7 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /mimir cmd/server/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /medha cmd/server/main.go
 
 # Runtime stage
 FROM alpine:3.19
@@ -22,26 +22,26 @@ FROM alpine:3.19
 RUN apk add --no-cache git ca-certificates tzdata
 
 # Create non-root user
-RUN adduser -D -u 1000 mimir
+RUN adduser -D -u 1000 medha
 
 # Create data directories
-RUN mkdir -p /home/mimir/.mimir/configs \
-             /home/mimir/.mimir/db \
-             /home/mimir/.mimir/store \
-    && chown -R mimir:mimir /home/mimir/.mimir
+RUN mkdir -p /home/medha/.medha/configs \
+             /home/medha/.medha/db \
+             /home/medha/.medha/store \
+    && chown -R medha:medha /home/medha/.medha
 
 # Copy binary from builder
-COPY --from=builder /mimir /usr/local/bin/mimir
+COPY --from=builder /medha /usr/local/bin/medha
 
 # Copy default config (optional)
-COPY config.sample.json /home/mimir/.mimir/configs/config.json
-RUN chown mimir:mimir /home/mimir/.mimir/configs/config.json
+COPY config.sample.json /home/medha/.medha/configs/config.json
+RUN chown medha:medha /home/medha/.medha/configs/config.json
 
-USER mimir
-WORKDIR /home/mimir
+USER medha
+WORKDIR /home/medha
 
 # Environment variables
-ENV MIMIR_HOME=/home/mimir/.mimir
+ENV MEDHA_HOME=/home/medha/.medha
 ENV ENCRYPTION_KEY=""
 
 # Expose HTTP port
@@ -52,5 +52,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD wget -q --spider http://localhost:8080/health || exit 1
 
 # Default to HTTP mode
-ENTRYPOINT ["/usr/local/bin/mimir"]
+ENTRYPOINT ["/usr/local/bin/medha"]
 CMD ["--http"]

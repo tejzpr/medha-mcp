@@ -1,30 +1,30 @@
-Mimir - Complete MCP Tools Guide
+Medha - Complete MCP Tools Guide
 ---
-description: Proactively manage information using Mimir MCP server
+description: Proactively manage information using Medha MCP server
 alwaysApply: true
 ---
 
-# Mimir Auto-Management Protocol
+# Medha Auto-Management Protocol
 
-When having conversations with the user, proactively identify opportunities to store, retrieve, and manage important information using the `mimir` MCP server.
+When having conversations with the user, proactively identify opportunities to store, retrieve, and manage important information using the `medha` MCP server.
 
 ## Available Tools Overview
 
-Mimir provides 7 **human-aligned tools** that express intent rather than implementation. Each tool has a clear purpose:
+Medha provides 7 **human-aligned tools** that express intent rather than implementation. Each tool has a clear purpose:
 
 | Tool | Intent | When to Use |
 |------|--------|-------------|
-| **mimir_recall** | "What do I know about X?" | Finding any information |
-| **mimir_remember** | "Store this for later" | Creating or updating memories |
-| **mimir_history** | "When did I learn about X?" | Understanding changes over time |
-| **mimir_connect** | "These are related" | Linking memories together |
-| **mimir_forget** | "No longer relevant" | Archiving outdated info |
-| **mimir_restore** | "Bring back that archived memory" | Undeleting |
-| **mimir_sync** | "Sync with remote" | Git synchronization |
+| **medha_recall** | "What do I know about X?" | Finding any information |
+| **medha_remember** | "Store this for later" | Creating or updating memories |
+| **medha_history** | "When did I learn about X?" | Understanding changes over time |
+| **medha_connect** | "These are related" | Linking memories together |
+| **medha_forget** | "No longer relevant" | Archiving outdated info |
+| **medha_restore** | "Bring back that archived memory" | Undeleting |
+| **medha_sync** | "Sync with remote" | Git synchronization |
 
 ---
 
-## 1. Finding Information (mimir_recall)
+## 1. Finding Information (medha_recall)
 
 **Intent**: "What do I know about X?"
 
@@ -61,12 +61,12 @@ This is the **primary retrieval tool** - use it whenever you need to find inform
 ### Example
 ```
 User: "What did we decide about the API?"
-Assistant: [Uses mimir_recall with topic="API decision"]
+Assistant: [Uses medha_recall with topic="API decision"]
 ```
 
 ---
 
-## 2. Storing Information (mimir_remember)
+## 2. Storing Information (medha_remember)
 
 **Intent**: "Store this for later" / "Update my understanding"
 
@@ -167,7 +167,7 @@ Use for creating new memories OR updating existing ones. If this information rep
 
 ---
 
-## 3. Understanding History (mimir_history)
+## 3. Understanding History (medha_history)
 
 **Intent**: "When did I learn about X?" / "What changed?"
 
@@ -200,12 +200,12 @@ Use when you need to understand when things happened or how they evolved.
 ### Example
 ```
 User: "When did we change the authentication approach?"
-Assistant: [Uses mimir_history with topic="authentication"]
+Assistant: [Uses medha_history with topic="authentication"]
 ```
 
 ---
 
-## 4. Linking Memories (mimir_connect)
+## 4. Linking Memories (medha_connect)
 
 **Intent**: "These are related" / "Unlink these"
 
@@ -245,12 +245,12 @@ Creates connections in the knowledge graph so related information can be found t
 ### Example
 ```
 User: "This bug fix relates to the security discussion"
-Assistant: [Uses mimir_connect from="bug-fix" to="security-discussion" relationship="references"]
+Assistant: [Uses medha_connect from="bug-fix" to="security-discussion" relationship="references"]
 ```
 
 ---
 
-## 5. Archiving Memories (mimir_forget)
+## 5. Archiving Memories (medha_forget)
 
 **Intent**: "No longer relevant"
 
@@ -273,12 +273,12 @@ Archives a memory that's outdated. Not deleted - can be restored later.
 ### Important Notes
 - This is a **soft delete** - moves to archive
 - Git history is preserved
-- Can be restored with `mimir_restore`
-- Use sparingly - superseding with `mimir_remember` is often better
+- Can be restored with `medha_restore`
+- Use sparingly - superseding with `medha_remember` is often better
 
 ---
 
-## 6. Restoring Memories (mimir_restore)
+## 6. Restoring Memories (medha_restore)
 
 **Intent**: "Bring back that archived memory"
 
@@ -299,11 +299,11 @@ Restores an archived memory to active status.
 **Required**: slug
 
 ### Finding Archived Memories
-Use `mimir_recall` with `include_archived: true` to find archived slugs.
+Use `medha_recall` with `include_archived: true` to find archived slugs.
 
 ---
 
-## 7. Syncing Repository (mimir_sync)
+## 7. Syncing Repository (medha_sync)
 
 **Intent**: "Sync with remote"
 
@@ -329,29 +329,29 @@ Manually trigger git synchronization to remote repository.
 
 ### Pattern 1: Recall Before Answering
 ```
-1. User asks a question → First check mimir_recall for context
+1. User asks a question → First check medha_recall for context
 2. If found → Include relevant memories in response
 3. If not found → Answer and offer to store
 ```
 
 ### Pattern 2: Store and Connect
 ```
-1. User solves a problem → Store with mimir_remember
+1. User solves a problem → Store with medha_remember
 2. Use "connections" param to link in same call (preferred)
-   OR use mimir_connect afterward
+   OR use medha_connect afterward
 3. Inform: "I've stored this and linked it to [related topic]"
 ```
 
 ### Pattern 3: Supersede Don't Duplicate
 ```
-1. User provides updated information → Use mimir_recall to find old version
-2. If found → Use mimir_remember with "replaces" parameter
+1. User provides updated information → Use medha_recall to find old version
+2. If found → Use medha_remember with "replaces" parameter
 3. Old memory automatically marked as superseded
 ```
 
 ### Pattern 4: Contextual Retrieval
 ```
-1. User asks about past work → mimir_recall with topic
+1. User asks about past work → medha_recall with topic
 2. Present relevant information with context
 3. Offer: "Would you like me to update this with new insights?"
 ```
@@ -363,7 +363,7 @@ Manually trigger git synchronization to remote repository.
 ### Example 1: Finding and Using Context
 ```
 User: "How should we handle authentication?"
-Assistant: [Uses mimir_recall with topic="authentication"]
+Assistant: [Uses medha_recall with topic="authentication"]
 Assistant: "Based on our previous discussion, we decided to use JWT tokens.
            [Shows relevant memory]
            Has anything changed, or should I update this?"
@@ -373,22 +373,22 @@ Assistant: "Based on our previous discussion, we decided to use JWT tokens.
 ```
 User: "Let's use PostgreSQL for the main database"
 Assistant: "Got it. I'll remember this decision."
-[Uses mimir_remember with title="Database Choice", content="...", tags=["database", "decision"]]
+[Uses medha_remember with title="Database Choice", content="...", tags=["database", "decision"]]
 Assistant: "Stored. I've tagged it under 'database' and 'decision' for easy retrieval."
 ```
 
 ### Example 3: Updating Understanding
 ```
 User: "Actually, let's switch to CockroachDB instead"
-Assistant: [Uses mimir_recall to find old database decision]
+Assistant: [Uses medha_recall to find old database decision]
 Assistant: "I'll update our database decision and mark the old one as superseded."
-[Uses mimir_remember with replaces="old-db-decision"]
+[Uses medha_remember with replaces="old-db-decision"]
 ```
 
 ### Example 4: Exploring History
 ```
 User: "What changes have we made to the API design?"
-Assistant: [Uses mimir_history with topic="API design", show_changes=true]
+Assistant: [Uses medha_history with topic="API design", show_changes=true]
 Assistant: "Here's the evolution of our API design decisions..."
 ```
 
@@ -398,13 +398,13 @@ Assistant: "Here's the evolution of our API design decisions..."
 
 | Task | Tool | Key Parameters |
 |------|------|----------------|
-| Find information | mimir_recall | topic, exact, list_all |
-| Store/update | mimir_remember | title, content, slug, replaces, connections |
-| Check history | mimir_history | slug, topic, show_changes, since |
-| Link memories | mimir_connect | from, to, relationship, disconnect |
-| Archive | mimir_forget | slug |
-| Restore | mimir_restore | slug |
-| Git sync | mimir_sync | force |
+| Find information | medha_recall | topic, exact, list_all |
+| Store/update | medha_remember | title, content, slug, replaces, connections |
+| Check history | medha_history | slug, topic, show_changes, since |
+| Link memories | medha_connect | from, to, relationship, disconnect |
+| Archive | medha_forget | slug |
+| Restore | medha_restore | slug |
+| Git sync | medha_sync | force |
 
 ---
 

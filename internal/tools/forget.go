@@ -11,15 +11,15 @@ import (
 	"path/filepath"
 
 	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/tejzpr/mimir-mcp/internal/database"
-	"github.com/tejzpr/mimir-mcp/internal/git"
-	"github.com/tejzpr/mimir-mcp/internal/memory"
+	"github.com/tejzpr/medha-mcp/internal/database"
+	"github.com/tejzpr/medha-mcp/internal/git"
+	"github.com/tejzpr/medha-mcp/internal/memory"
 	"gorm.io/gorm"
 )
 
-// NewForgetTool creates the mimir_forget tool definition
+// NewForgetTool creates the medha_forget tool definition
 func NewForgetTool() mcp.Tool {
-	return mcp.NewTool("mimir_forget",
+	return mcp.NewTool("medha_forget",
 		mcp.WithDescription("Archive a memory that's no longer relevant. The memory isn't deleted - it's moved to archive and can be restored later. Use when information is outdated or no longer needed."),
 		mcp.WithString("slug",
 			mcp.Required(),
@@ -28,7 +28,7 @@ func NewForgetTool() mcp.Tool {
 	)
 }
 
-// ForgetHandler handles the mimir_forget tool
+// ForgetHandler handles the medha_forget tool
 func ForgetHandler(ctx *ToolContext, userID uint) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(c context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		slug, err := request.RequireString("slug")
@@ -37,7 +37,7 @@ func ForgetHandler(ctx *ToolContext, userID uint) func(context.Context, mcp.Call
 		}
 
 		// Get memory
-		var mem database.MimirMemory
+		var mem database.MedhaMemory
 		if err := ctx.DB.Where("slug = ? AND user_id = ?", slug, userID).First(&mem).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
 				return mcp.NewToolResultError(fmt.Sprintf("memory not found: %s", slug)), nil
