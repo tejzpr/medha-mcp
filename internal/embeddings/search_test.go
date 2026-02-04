@@ -17,9 +17,9 @@ func TestVectorSearch_SimilarityRanking(t *testing.T) {
 
 	// Insert test vectors directly
 	embeddings := []Embedding{
-		{Slug: "doc1", Vector: VectorToBytes([]float32{1.0, 0.0, 0.0}), ContentHash: "h1", ModelName: "test", ModelVersion: "v1", Dimensions: 3, CreatedAt: time.Now()},
-		{Slug: "doc2", Vector: VectorToBytes([]float32{0.9, 0.1, 0.0}), ContentHash: "h2", ModelName: "test", ModelVersion: "v1", Dimensions: 3, CreatedAt: time.Now()},  // Similar to doc1
-		{Slug: "doc3", Vector: VectorToBytes([]float32{0.0, 1.0, 0.0}), ContentHash: "h3", ModelName: "test", ModelVersion: "v1", Dimensions: 3, CreatedAt: time.Now()},  // Different
+		{Slug: "doc1", Vector: Float32SliceToBlob([]float32{1.0, 0.0, 0.0}), ContentHash: "h1", ModelName: "test", ModelVersion: "v1", Dimensions: 3, CreatedAt: time.Now()},
+		{Slug: "doc2", Vector: Float32SliceToBlob([]float32{0.9, 0.1, 0.0}), ContentHash: "h2", ModelName: "test", ModelVersion: "v1", Dimensions: 3, CreatedAt: time.Now()},  // Similar to doc1
+		{Slug: "doc3", Vector: Float32SliceToBlob([]float32{0.0, 1.0, 0.0}), ContentHash: "h3", ModelName: "test", ModelVersion: "v1", Dimensions: 3, CreatedAt: time.Now()},  // Different
 	}
 
 	for _, emb := range embeddings {
@@ -47,7 +47,7 @@ func TestVectorSearch_LimitResults(t *testing.T) {
 		vec[i%10] = 1.0
 		emb := Embedding{
 			Slug:         string(rune('a' + i%26)) + string(rune('0'+i/26)),
-			Vector:       VectorToBytes(vec),
+			Vector:       Float32SliceToBlob(vec),
 			ContentHash:  "h",
 			ModelName:    "test",
 			ModelVersion: "v1",
@@ -83,7 +83,7 @@ func TestVectorSearch_Delete(t *testing.T) {
 
 	emb := Embedding{
 		Slug:         "to-delete",
-		Vector:       VectorToBytes([]float32{1.0, 0.0, 0.0}),
+		Vector:       Float32SliceToBlob([]float32{1.0, 0.0, 0.0}),
 		ContentHash:  "h",
 		ModelName:    "test",
 		ModelVersion: "v1",
@@ -111,7 +111,7 @@ func TestVectorSearch_Count(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		emb := Embedding{
 			Slug:         string(rune('a' + i)),
-			Vector:       VectorToBytes([]float32{1.0, 0.0, 0.0}),
+			Vector:       Float32SliceToBlob([]float32{1.0, 0.0, 0.0}),
 			ContentHash:  "h",
 			ModelName:    "test",
 			ModelVersion: "v1",
@@ -133,9 +133,9 @@ func TestVectorSearch_SearchWithThreshold(t *testing.T) {
 
 	// Insert test vectors
 	embeddings := []Embedding{
-		{Slug: "high-sim", Vector: VectorToBytes([]float32{1.0, 0.0, 0.0}), ContentHash: "h1", ModelName: "test", ModelVersion: "v1", Dimensions: 3, CreatedAt: time.Now()},
-		{Slug: "med-sim", Vector: VectorToBytes([]float32{0.7, 0.7, 0.0}), ContentHash: "h2", ModelName: "test", ModelVersion: "v1", Dimensions: 3, CreatedAt: time.Now()},
-		{Slug: "low-sim", Vector: VectorToBytes([]float32{0.0, 0.0, 1.0}), ContentHash: "h3", ModelName: "test", ModelVersion: "v1", Dimensions: 3, CreatedAt: time.Now()},
+		{Slug: "high-sim", Vector: Float32SliceToBlob([]float32{1.0, 0.0, 0.0}), ContentHash: "h1", ModelName: "test", ModelVersion: "v1", Dimensions: 3, CreatedAt: time.Now()},
+		{Slug: "med-sim", Vector: Float32SliceToBlob([]float32{0.7, 0.7, 0.0}), ContentHash: "h2", ModelName: "test", ModelVersion: "v1", Dimensions: 3, CreatedAt: time.Now()},
+		{Slug: "low-sim", Vector: Float32SliceToBlob([]float32{0.0, 0.0, 1.0}), ContentHash: "h3", ModelName: "test", ModelVersion: "v1", Dimensions: 3, CreatedAt: time.Now()},
 	}
 
 	for _, emb := range embeddings {
@@ -209,9 +209,9 @@ func TestSemanticSearch_HybridSearch(t *testing.T) {
 
 	// Insert embeddings
 	embeddings := []Embedding{
-		{Slug: "both-match", Vector: VectorToBytes([]float32{0.9, 0.1, 0.0}), ContentHash: "h1", ModelName: "test", ModelVersion: "v1", Dimensions: 3, CreatedAt: time.Now()},
-		{Slug: "semantic-only", Vector: VectorToBytes([]float32{0.8, 0.2, 0.0}), ContentHash: "h2", ModelName: "test", ModelVersion: "v1", Dimensions: 3, CreatedAt: time.Now()},
-		{Slug: "keyword-only", Vector: VectorToBytes([]float32{0.1, 0.9, 0.0}), ContentHash: "h3", ModelName: "test", ModelVersion: "v1", Dimensions: 3, CreatedAt: time.Now()},
+		{Slug: "both-match", Vector: Float32SliceToBlob([]float32{0.9, 0.1, 0.0}), ContentHash: "h1", ModelName: "test", ModelVersion: "v1", Dimensions: 3, CreatedAt: time.Now()},
+		{Slug: "semantic-only", Vector: Float32SliceToBlob([]float32{0.8, 0.2, 0.0}), ContentHash: "h2", ModelName: "test", ModelVersion: "v1", Dimensions: 3, CreatedAt: time.Now()},
+		{Slug: "keyword-only", Vector: Float32SliceToBlob([]float32{0.1, 0.9, 0.0}), ContentHash: "h3", ModelName: "test", ModelVersion: "v1", Dimensions: 3, CreatedAt: time.Now()},
 	}
 	for _, emb := range embeddings {
 		require.NoError(t, db.Create(&emb).Error)

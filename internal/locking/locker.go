@@ -234,6 +234,39 @@ func UpdateWithVersion(db *gorm.DB, table string, slug string, currentVersion in
 	return nil
 }
 
+// UpdateWithVersionUnscoped performs an optimistic locking update including soft-deleted records
+// This is useful for restore operations where we need to update records with deleted_at set
+// Returns ConflictError if versions don't match
+func UpdateWithVersionUnscoped(db *gorm.DB, table string, slug string, currentVersion int64, updates map[string]interface{}) error {
+	// Add version increment to updates
+	updates["version"] = gorm.Expr("version + 1")
+
+	// Use Unscoped to include soft-deleted records
+	result := db.Unscoped().Table(table).
+		Where("slug = ? AND version = ?", slug, currentVersion).
+		Updates(updates)
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		// Check if record exists with different version (also unscoped)
+		var count int64
+		db.Unscoped().Table(table).Where("slug = ?", slug).Count(&count)
+		if count > 0 {
+			return &ConflictError{
+				Slug:            slug,
+				ExpectedVersion: currentVersion,
+				ActualVersion:   -1, // Unknown
+			}
+		}
+		return fmt.Errorf("record not found: %s", slug)
+	}
+
+	return nil
+}
+
 // RetryWithBackoff retries a function with exponential backoff
 func RetryWithBackoff(maxRetries int, initialDelay time.Duration, fn func() error) error {
 	var lastErr error

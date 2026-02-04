@@ -22,7 +22,6 @@ import (
 	"github.com/tejzpr/medha-mcp/internal/rebuild"
 	"github.com/tejzpr/medha-mcp/internal/server"
 	"github.com/tejzpr/medha-mcp/pkg/scheduler"
-	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
@@ -141,7 +140,7 @@ func main() {
 	// Log final configuration
 	log.Printf("Configuration: database=%s", cfg.Database.Type)
 
-	// Connect to database with stderr logging for GORM
+	// Create database manager (handles system DB connection and migrations)
 	dbCfg := &database.Config{
 		Type:        cfg.Database.Type,
 		SQLitePath:  cfg.Database.SQLitePath,
@@ -149,23 +148,23 @@ func main() {
 		LogLevel:    logger.Silent, // CRITICAL: Silence GORM stdout output for MCP
 	}
 
-	db, err := database.Connect(dbCfg)
+	dbMgr, err := database.NewManager(dbCfg)
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		log.Fatalf("Failed to create database manager: %v", err)
 	}
-	defer database.Close(db)
+	defer dbMgr.Close()
 
 	log.Printf("Connected to database: %s", cfg.Database.Type)
 
-	// Run migrations
-	if err := database.Migrate(db); err != nil {
+	// Run additional system DB migrations (NewManager runs basic migrations)
+	if err := database.Migrate(dbMgr.SystemDB()); err != nil {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
 	log.Println("Database migrations completed")
 
 	// Create indexes
-	if err := database.CreateIndexes(db); err != nil {
+	if err := database.CreateIndexes(dbMgr.SystemDB()); err != nil {
 		log.Printf("Warning: Failed to create indexes: %v", err)
 	}
 
@@ -174,32 +173,34 @@ func main() {
 
 	// REBUILD MODE: Run rebuild and exit
 	if *rebuildDB {
-		runRebuildMode(cfg, db, *forceRebuild)
+		runRebuildMode(cfg, dbMgr, *forceRebuild)
 		return
 	}
 
 	// REBUILD USER DB MODE: Run per-user database rebuild and exit
 	if *rebuildUserDB != "" {
-		runRebuildUserDBMode(cfg, db, *rebuildUserDB, *forceRebuild)
+		runRebuildUserDBMode(cfg, dbMgr, *rebuildUserDB, *forceRebuild)
 		return
 	}
 
 	// SERVER MODE: Detect mode and run appropriately
 	if *httpMode {
 		log.Println("Running in HTTP server mode")
-		runHTTPMode(cfg, db, encryptionKey)
+		runHTTPMode(cfg, dbMgr, encryptionKey)
 	} else {
 		if *withAccessingUser {
 			log.Println("Running in stdio mode (MCP) with ACCESSING_USER authentication")
 		} else {
 			log.Println("Running in stdio mode (MCP)")
 		}
-		runStdioMode(cfg, db, encryptionKey, *withAccessingUser)
+		runStdioMode(cfg, dbMgr, encryptionKey, *withAccessingUser)
 	}
 }
 
 // runRebuildMode authenticates user, finds repo, and runs database rebuild
-func runRebuildMode(cfg *config.Config, db *gorm.DB, force bool) {
+func runRebuildMode(cfg *config.Config, dbMgr *database.Manager, force bool) {
+	db := dbMgr.SystemDB()
+
 	// Initialize local auth
 	tokenManager := auth.NewTokenManager(db, cfg.Security.TokenTTL)
 	localAuth := auth.NewLocalAuthenticator(tokenManager)
@@ -272,7 +273,8 @@ func runRebuildMode(cfg *config.Config, db *gorm.DB, force bool) {
 
 // runRebuildUserDBMode rebuilds the per-user database for specified target
 // target can be: "all" (all users), username, or filesystem path
-func runRebuildUserDBMode(cfg *config.Config, db *gorm.DB, target string, force bool) {
+func runRebuildUserDBMode(cfg *config.Config, dbMgr *database.Manager, target string, force bool) {
+	db := dbMgr.SystemDB()
 	opts := rebuild.Options{Force: force}
 
 	if target == "all" {
@@ -512,7 +514,9 @@ func applyEmbeddingCLIOverrides(cfg *config.Config, enableEmbeddings bool, embed
 
 // runStdioMode runs the server in stdio mode for Cursor MCP
 // If useAccessingUser is true, uses ACCESSING_USER env var for identity instead of whoami
-func runStdioMode(cfg *config.Config, db *gorm.DB, encryptionKey []byte, useAccessingUser bool) {
+func runStdioMode(cfg *config.Config, dbMgr *database.Manager, encryptionKey []byte, useAccessingUser bool) {
+	db := dbMgr.SystemDB()
+
 	// Initialize local auth
 	tokenManager := auth.NewTokenManager(db, cfg.Security.TokenTTL)
 	var localAuth *auth.LocalAuthenticator
@@ -549,7 +553,7 @@ func runStdioMode(cfg *config.Config, db *gorm.DB, encryptionKey []byte, useAcce
 	// Check if repo already exists (check both database and filesystem)
 	var existingRepo database.MedhaGitRepo
 	expectedRepoPath := git.GetUserRepositoryPath(storePath, user.Username)
-	
+
 	err = db.Where("user_id = ?", user.ID).First(&existingRepo).Error
 	if err != nil {
 		// No repo in database, check if folder exists on disk (recovery scenario)
@@ -592,8 +596,8 @@ func runStdioMode(cfg *config.Config, db *gorm.DB, encryptionKey []byte, useAcce
 		log.Fatalf("Failed to get repository: %v", err)
 	}
 
-	// Create MCP server
-	mcpServer, err := server.NewMCPServer(cfg, db, encryptionKey)
+	// Create MCP server with database manager
+	mcpServer, err := server.NewMCPServer(cfg, dbMgr, encryptionKey)
 	if err != nil {
 		log.Fatalf("Failed to create MCP server: %v", err)
 	}
@@ -604,7 +608,10 @@ func runStdioMode(cfg *config.Config, db *gorm.DB, encryptionKey []byte, useAcce
 		log.Fatalf("Failed to register tools: %v", err)
 	}
 
-	log.Println("MCP server ready (stdio mode) - 9 tools registered")
+	log.Println("MCP server ready (stdio mode) - 7 tools registered")
+	if mcpServer.HasEmbeddings() {
+		log.Println("Semantic search enabled")
+	}
 
 	// Serve via stdio
 	mcpGoServer := mcpServer.GetMCPServer()
@@ -614,20 +621,25 @@ func runStdioMode(cfg *config.Config, db *gorm.DB, encryptionKey []byte, useAcce
 }
 
 // runHTTPMode runs the server in HTTP mode for web interface
-func runHTTPMode(cfg *config.Config, db *gorm.DB, encryptionKey []byte) {
+func runHTTPMode(cfg *config.Config, dbMgr *database.Manager, encryptionKey []byte) {
+	db := dbMgr.SystemDB()
+
 	// Initialize local auth
 	tokenManager := auth.NewTokenManager(db, cfg.Security.TokenTTL)
 	localAuth := auth.NewLocalAuthenticator(tokenManager)
 	username, _ := localAuth.GetLocalUsername()
 	log.Printf("Local authentication initialized (system user: %s)", username)
 
-	// Create MCP server
-	mcpServer, err := server.NewMCPServer(cfg, db, encryptionKey)
+	// Create MCP server with database manager
+	mcpServer, err := server.NewMCPServer(cfg, dbMgr, encryptionKey)
 	if err != nil {
 		log.Fatalf("Failed to create MCP server: %v", err)
 	}
 
 	log.Println("MCP server initialized")
+	if mcpServer.HasEmbeddings() {
+		log.Println("Semantic search enabled")
+	}
 
 	// Create HTTP server (simplified, local-only)
 	httpServer := server.NewHTTPServer(mcpServer, nil, localAuth, "local", encryptionKey)

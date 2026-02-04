@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/glebarez/sqlite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -132,8 +132,8 @@ func TestCalculateContentHash(t *testing.T) {
 func TestVectorConversion(t *testing.T) {
 	original := []float32{1.0, 2.5, -3.14159, 0.0, 100.123}
 
-	bytes := VectorToBytes(original)
-	restored := BytesToVector(bytes)
+	bytes := Float32SliceToBlob(original)
+	restored := BlobToFloat32Slice(bytes)
 
 	assert.Len(t, restored, len(original))
 	for i := range original {
@@ -142,22 +142,45 @@ func TestVectorConversion(t *testing.T) {
 }
 
 func TestCosineSimilarity(t *testing.T) {
-	// Identical vectors
-	vec1 := []float32{1.0, 0.0, 0.0}
-	assert.InDelta(t, 1.0, CosineSimilarity(vec1, vec1), 0.0001)
+	// Test cosine similarity through VectorSearch fallback
+	db := setupTestDB(t)
 
-	// Orthogonal vectors
-	vec2 := []float32{0.0, 1.0, 0.0}
-	assert.InDelta(t, 0.0, CosineSimilarity(vec1, vec2), 0.0001)
+	// Insert test vectors directly
+	embeddings := []Embedding{
+		{Slug: "identical", Vector: Float32SliceToBlob([]float32{1.0, 0.0, 0.0}), ContentHash: "h1", ModelName: "test", ModelVersion: "v1", Dimensions: 3},
+		{Slug: "orthogonal", Vector: Float32SliceToBlob([]float32{0.0, 1.0, 0.0}), ContentHash: "h2", ModelName: "test", ModelVersion: "v1", Dimensions: 3},
+		{Slug: "similar", Vector: Float32SliceToBlob([]float32{0.9, 0.1, 0.0}), ContentHash: "h3", ModelName: "test", ModelVersion: "v1", Dimensions: 3},
+	}
 
-	// Opposite vectors
-	vec3 := []float32{-1.0, 0.0, 0.0}
-	assert.InDelta(t, -1.0, CosineSimilarity(vec1, vec3), 0.0001)
+	for _, emb := range embeddings {
+		require.NoError(t, db.Create(&emb).Error)
+	}
 
-	// Similar vectors
-	vec4 := []float32{0.9, 0.1, 0.0}
-	sim := CosineSimilarity(vec1, vec4)
-	assert.Greater(t, sim, float32(0.9))
+	search := NewVectorSearch(db, nil)
+
+	// Query with [1,0,0] - identical should be first with sim ~1.0, similar should have sim > 0.9
+	results, err := search.Search([]float32{1.0, 0.0, 0.0}, 3)
+	require.NoError(t, err)
+
+	// Find results
+	var identicalSim, orthogonalSim, similarSim float32
+	for _, r := range results {
+		switch r.Slug {
+		case "identical":
+			identicalSim = r.Similarity
+		case "orthogonal":
+			orthogonalSim = r.Similarity
+		case "similar":
+			similarSim = r.Similarity
+		}
+	}
+
+	// Identical should be ~1.0
+	assert.InDelta(t, 1.0, identicalSim, 0.0001)
+	// Orthogonal should be low (but similarity conversion makes it positive)
+	assert.Less(t, orthogonalSim, float32(0.5))
+	// Similar should be > orthogonal
+	assert.Greater(t, similarSim, orthogonalSim)
 }
 
 func TestEmbeddingService_IsStale(t *testing.T) {

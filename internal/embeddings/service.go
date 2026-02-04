@@ -6,9 +6,7 @@ package embeddings
 
 import (
 	"crypto/sha256"
-	"encoding/binary"
 	"fmt"
-	"math"
 	"time"
 
 	"gorm.io/gorm"
@@ -23,6 +21,7 @@ type Service struct {
 	modelVersion string
 	dimensions   int
 	enabled      bool
+	vecSearch    *VectorSearch // Vector search instance for sqlite-vec integration
 }
 
 // NewService creates a new embedding service
@@ -35,6 +34,28 @@ func NewService(db *gorm.DB, client Client, modelName, modelVersion string, dime
 		dimensions:   dimensions,
 		enabled:      true,
 	}
+}
+
+// NewServiceWithVec creates a new embedding service with sqlite-vec enabled
+func NewServiceWithVec(db *gorm.DB, client Client, modelName, modelVersion string, dimensions int) (*Service, error) {
+	svc := &Service{
+		db:           db,
+		client:       client,
+		modelName:    modelName,
+		modelVersion: modelVersion,
+		dimensions:   dimensions,
+		enabled:      true,
+	}
+
+	// Initialize vector search with sqlite-vec
+	vecSearch, err := NewVectorSearchWithVec(db, svc, dimensions)
+	if err != nil {
+		// Fallback to service without vec
+		return svc, nil
+	}
+	svc.vecSearch = vecSearch
+
+	return svc, nil
 }
 
 // SetEnabled enables or disables the embedding service
@@ -63,7 +84,7 @@ func (s *Service) GetEmbedding(slug, content string) ([]float32, error) {
 
 	if err == nil {
 		// Cache hit - embedding is fresh
-		return BytesToVector(cached.Vector), nil
+		return BlobToFloat32Slice(cached.Vector), nil
 	}
 
 	// Cache miss or stale - regenerate
@@ -79,7 +100,7 @@ func (s *Service) GetEmbedding(slug, content string) ([]float32, error) {
 		ModelName:    s.modelName,
 		ModelVersion: s.modelVersion,
 		Dimensions:   len(vector),
-		Vector:       VectorToBytes(vector),
+		Vector:       Float32SliceToBlob(vector),
 		CreatedAt:    time.Now(),
 	}
 
@@ -90,6 +111,11 @@ func (s *Service) GetEmbedding(slug, content string) ([]float32, error) {
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to cache embedding: %w", err)
+	}
+
+	// Also store in vec table if available
+	if s.vecSearch != nil && s.vecSearch.IsVecEnabled() {
+		_ = InsertVecEmbedding(s.db, slug, vector) // Best effort, don't fail
 	}
 
 	return vector, nil
@@ -107,7 +133,17 @@ func (s *Service) GetCachedEmbedding(slug string) (*Embedding, error) {
 
 // DeleteEmbedding removes an embedding from the cache
 func (s *Service) DeleteEmbedding(slug string) error {
-	return s.db.Where("slug = ?", slug).Delete(&Embedding{}).Error
+	// Delete from metadata table
+	if err := s.db.Where("slug = ?", slug).Delete(&Embedding{}).Error; err != nil {
+		return err
+	}
+
+	// Also delete from vec table if available
+	if s.vecSearch != nil && s.vecSearch.IsVecEnabled() {
+		_ = DeleteVecEmbedding(s.db, slug)
+	}
+
+	return nil
 }
 
 // IndexAll generates embeddings for all provided memories
@@ -176,41 +212,17 @@ func CalculateContentHash(content string) string {
 	return fmt.Sprintf("%x", hash[:16]) // Use first 16 bytes for shorter hash
 }
 
-// VectorToBytes converts a float32 vector to bytes for storage
-func VectorToBytes(vector []float32) []byte {
-	buf := make([]byte, len(vector)*4)
-	for i, v := range vector {
-		binary.LittleEndian.PutUint32(buf[i*4:], math.Float32bits(v))
+// GetVectorSearch returns the vector search instance
+// Used for direct vector search operations
+func (s *Service) GetVectorSearch() *VectorSearch {
+	if s.vecSearch == nil {
+		// Create a basic vector search without vec if not already created
+		s.vecSearch = NewVectorSearch(s.db, s)
 	}
-	return buf
+	return s.vecSearch
 }
 
-// BytesToVector converts bytes back to a float32 vector
-func BytesToVector(data []byte) []float32 {
-	vector := make([]float32, len(data)/4)
-	for i := range vector {
-		bits := binary.LittleEndian.Uint32(data[i*4:])
-		vector[i] = math.Float32frombits(bits)
-	}
-	return vector
-}
-
-// CosineSimilarity calculates the cosine similarity between two vectors
-func CosineSimilarity(a, b []float32) float32 {
-	if len(a) != len(b) {
-		return 0
-	}
-
-	var dotProduct, normA, normB float32
-	for i := range a {
-		dotProduct += a[i] * b[i]
-		normA += a[i] * a[i]
-		normB += b[i] * b[i]
-	}
-
-	if normA == 0 || normB == 0 {
-		return 0
-	}
-
-	return dotProduct / (float32(math.Sqrt(float64(normA))) * float32(math.Sqrt(float64(normB))))
+// IsVecEnabled returns whether sqlite-vec is enabled for this service
+func (s *Service) IsVecEnabled() bool {
+	return s.vecSearch != nil && s.vecSearch.IsVecEnabled()
 }

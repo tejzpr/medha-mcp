@@ -6,6 +6,7 @@ package tools
 
 import (
 	"github.com/tejzpr/medha-mcp/internal/database"
+	"github.com/tejzpr/medha-mcp/internal/embeddings"
 	"github.com/tejzpr/medha-mcp/internal/git"
 	"github.com/tejzpr/medha-mcp/internal/memory"
 	"gorm.io/gorm"
@@ -21,29 +22,21 @@ const (
 // - SystemDB: Global database for users, auth, repos (stays at ~/.medha/db/)
 // - UserDB: Per-user database in .medha/medha.db inside git repo
 // - DB: Kept for backward compatibility, points to SystemDB
+// - EmbeddingService: Optional embedding service for semantic search
 type ToolContext struct {
-	DB       *gorm.DB // Backward compatibility - points to SystemDB
-	SystemDB *gorm.DB // Global database for users, auth, repos
-	UserDB   *gorm.DB // Per-user database in .medha/medha.db
-	RepoPath string
-	DBMgr    *database.Manager // Database manager for handling connections
+	DB               *gorm.DB            // Backward compatibility - points to SystemDB
+	SystemDB         *gorm.DB            // Global database for users, auth, repos
+	UserDB           *gorm.DB            // Per-user database in .medha/medha.db
+	RepoPath         string
+	DBMgr            *database.Manager   // Database manager for handling connections
+	EmbeddingService *embeddings.Service // Optional embedding service for semantic search
 }
 
-// NewToolContext creates a new tool context (v1 backward compatibility)
+// NewToolContext creates a new tool context (v1 style - for testing without UserDB)
 func NewToolContext(db *gorm.DB, repoPath string) *ToolContext {
 	return &ToolContext{
 		DB:       db,
 		SystemDB: db,
-		RepoPath: repoPath,
-	}
-}
-
-// NewToolContextV2 creates a new tool context with separate system and user databases
-func NewToolContextV2(systemDB *gorm.DB, userDB *gorm.DB, repoPath string) *ToolContext {
-	return &ToolContext{
-		DB:       systemDB, // Backward compatibility
-		SystemDB: systemDB,
-		UserDB:   userDB,
 		RepoPath: repoPath,
 	}
 }
@@ -64,48 +57,32 @@ func NewToolContextWithManager(mgr *database.Manager, repoPath string) (*ToolCon
 	}, nil
 }
 
+// NewToolContextWithEmbeddings creates a tool context with embedding service enabled
+func NewToolContextWithEmbeddings(mgr *database.Manager, repoPath string, embeddingSvc *embeddings.Service) (*ToolContext, error) {
+	ctx, err := NewToolContextWithManager(mgr, repoPath)
+	if err != nil {
+		return nil, err
+	}
+	ctx.EmbeddingService = embeddingSvc
+	return ctx, nil
+}
+
+// SetEmbeddingService sets the embedding service for the tool context
+func (tc *ToolContext) SetEmbeddingService(svc *embeddings.Service) {
+	tc.EmbeddingService = svc
+}
+
+// HasEmbeddings returns true if embedding service is available and enabled
+func (tc *ToolContext) HasEmbeddings() bool {
+	return tc.EmbeddingService != nil && tc.EmbeddingService.IsEnabled()
+}
+
 // GetRepository opens the git repository for operations
 func (tc *ToolContext) GetRepository() (*git.Repository, error) {
 	return git.OpenRepository(tc.RepoPath)
 }
 
-// GetMemoryBySlug retrieves a memory from the database by slug
-// In v2, this queries the per-user database (UserDB)
-// Falls back to v1 behavior (global DB) if UserDB is not set
-func (tc *ToolContext) GetMemoryBySlug(slug string) (*database.MedhaMemory, error) {
-	var mem database.MedhaMemory
-	db := tc.DB
-	if tc.UserDB != nil {
-		// v2: Query from per-user database
-		// Note: This returns MedhaMemory for backward compatibility
-		// Internally, UserMemory is used in the per-user DB
-		var userMem database.UserMemory
-		err := tc.UserDB.Where(querySlugEquals, slug).First(&userMem).Error
-		if err != nil {
-			return nil, err
-		}
-		// Convert to MedhaMemory for backward compatibility
-		mem = database.MedhaMemory{
-			ID:             userMem.ID,
-			Slug:           userMem.Slug,
-			Title:          userMem.Title,
-			FilePath:       userMem.FilePath,
-			CreatedAt:      userMem.CreatedAt,
-			UpdatedAt:      userMem.UpdatedAt,
-			DeletedAt:      userMem.DeletedAt,
-			SupersededBy:   userMem.SupersededBy,
-			LastAccessedAt: userMem.LastAccessedAt,
-			AccessCount:    userMem.AccessCount,
-		}
-		return &mem, nil
-	}
-	// v1 fallback: Query from global database
-	err := db.Where(querySlugEquals, slug).First(&mem).Error
-	return &mem, err
-}
-
 // GetUserMemoryBySlug retrieves a UserMemory from the per-user database by slug
-// This is the v2 native method
 func (tc *ToolContext) GetUserMemoryBySlug(slug string) (*database.UserMemory, error) {
 	if tc.UserDB == nil {
 		return nil, gorm.ErrRecordNotFound

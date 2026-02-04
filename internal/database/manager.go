@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/glebarez/sqlite"
 	"gorm.io/driver/postgres"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -84,8 +84,45 @@ func (m *Manager) GetUserDB(repoPath string) (*gorm.DB, error) {
 	return db, nil
 }
 
+// GetUserDBWithVec opens or returns an existing per-user database connection
+// with sqlite-vec virtual table created for vector search
+func (m *Manager) GetUserDBWithVec(repoPath string, dimensions int) (*gorm.DB, error) {
+	// Check cache first
+	m.userDBsMux.RLock()
+	if db, ok := m.userDBs[repoPath]; ok {
+		m.userDBsMux.RUnlock()
+		// Ensure vec table exists even if DB was previously opened without vec
+		if IsVecAvailable(db) {
+			_ = createVecEmbeddingsTable(db, dimensions)
+		}
+		return db, nil
+	}
+	m.userDBsMux.RUnlock()
+
+	// Open new connection with vec support
+	m.userDBsMux.Lock()
+	defer m.userDBsMux.Unlock()
+
+	// Double-check after acquiring write lock
+	if db, ok := m.userDBs[repoPath]; ok {
+		if IsVecAvailable(db) {
+			_ = createVecEmbeddingsTable(db, dimensions)
+		}
+		return db, nil
+	}
+
+	db, err := OpenUserDBWithVec(repoPath, dimensions)
+	if err != nil {
+		return nil, err
+	}
+
+	m.userDBs[repoPath] = db
+	return db, nil
+}
+
 // OpenUserDB opens a per-user database at the specified repository path
 // Creates the .medha directory and database if they don't exist
+// Uses CGO-based SQLite driver with sqlite-vec support
 func OpenUserDB(repoPath string) (*gorm.DB, error) {
 	dbPath := GetUserDBPath(repoPath)
 
@@ -96,6 +133,7 @@ func OpenUserDB(repoPath string) (*gorm.DB, error) {
 	}
 
 	// Open SQLite database with git-friendly settings
+	// Using CGO-based driver (gorm.io/driver/sqlite) for sqlite-vec support
 	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent),
 	})
@@ -120,6 +158,41 @@ func OpenUserDB(repoPath string) (*gorm.DB, error) {
 	}
 
 	return db, nil
+}
+
+// OpenUserDBWithVec opens a per-user database with sqlite-vec support verified
+// and creates the vec_embeddings virtual table if sqlite-vec is available
+func OpenUserDBWithVec(repoPath string, dimensions int) (*gorm.DB, error) {
+	db, err := OpenUserDB(repoPath)
+	if err != nil {
+		return nil, err
+	}
+
+	// Verify sqlite-vec is available and create vec_embeddings table
+	if IsVecAvailable(db) {
+		if dimensions <= 0 {
+			dimensions = 1536 // Default for text-embedding-3-small
+		}
+		// Create vec_embeddings virtual table (idempotent - uses IF NOT EXISTS)
+		if err := createVecEmbeddingsTable(db, dimensions); err != nil {
+			// Log but don't fail - embeddings will use fallback
+			return db, nil
+		}
+	}
+
+	return db, nil
+}
+
+// createVecEmbeddingsTable creates the sqlite-vec virtual table for vector search
+func createVecEmbeddingsTable(db *gorm.DB, dimensions int) error {
+	sql := fmt.Sprintf(`
+		CREATE VIRTUAL TABLE IF NOT EXISTS vec_embeddings USING vec0(
+			slug TEXT PRIMARY KEY,
+			embedding FLOAT[%d]
+		)
+	`, dimensions)
+
+	return db.Exec(sql).Error
 }
 
 // GetUserDBPath returns the path to the per-user database
