@@ -501,7 +501,7 @@ func processUserMemoryFile(userDB *gorm.DB, repoPath, filePath string) (*memory.
 		strings.HasPrefix(relPath, "archive/")
 
 	// Calculate content hash
-	contentHash := calculateContentHash(string(content))
+	contentHash := CalculateContentHash(string(content))
 
 	// Create memory record
 	dbMem := &database.UserMemory{
@@ -596,8 +596,9 @@ func processUserAssociations(userDB *gorm.DB, memoryAssociations map[string][]me
 	return created, errors
 }
 
-// calculateContentHash computes a hash of the content for cache invalidation
-func calculateContentHash(content string) string {
+// CalculateContentHash computes a hash of the content for cache invalidation
+// Exported for use in tests and other packages
+func CalculateContentHash(content string) string {
 	// Simple hash using FNV-1a
 	const offset64 = 14695981039346656037
 	const prime64 = 1099511628211

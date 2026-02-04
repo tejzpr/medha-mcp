@@ -33,8 +33,9 @@ func main() {
 	// Define command-line flags
 	httpMode := flag.Bool("http", false, "Run in HTTP server mode (default: stdio for MCP)")
 	withAccessingUser := flag.Bool("with-accessinguser", false, "Use ACCESSING_USER env var for user identity (stdio mode only)")
-	rebuildDB := flag.Bool("rebuilddb", false, "Rebuild database index from git repository")
-	forceRebuild := flag.Bool("force", false, "Force rebuild (requires --rebuilddb)")
+	rebuildDB := flag.Bool("rebuilddb", false, "Rebuild system database index from git repository")
+	rebuildUserDB := flag.String("rebuild-userdb", "", "Rebuild per-user database (requires 'all' or username/path)")
+	forceRebuild := flag.Bool("force", false, "Force rebuild (requires --rebuilddb or --rebuild-userdb)")
 	dbType := flag.String("db-type", "", "Database type (sqlite or postgres)")
 	dbPath := flag.String("db-path", "", "Database path (for sqlite)")
 	dbDSN := flag.String("db-dsn", "", "Database DSN (for postgres)")
@@ -55,8 +56,11 @@ func main() {
 		fmt.Fprintf(os.Stderr, "  %s --with-accessinguser     Start MCP server (stdio) using ACCESSING_USER env var\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "  %s --http                   Start HTTP server with SAML authentication\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "\nDatabase Rebuild:\n")
-		fmt.Fprintf(os.Stderr, "  %s --rebuilddb           Rebuild database index from git repository\n", os.Args[0])
-		fmt.Fprintf(os.Stderr, "  %s --rebuilddb --force   Rebuild and overwrite existing data\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "  %s --rebuilddb                          Rebuild system database index\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "  %s --rebuilddb --force                  Rebuild and overwrite existing data\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "  %s --rebuild-userdb all                 Rebuild all users' per-user databases\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "  %s --rebuild-userdb <username>          Rebuild specific user's per-user database\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "  %s --rebuild-userdb <path> --force      Rebuild per-user database at path (force)\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "\nEmbeddings:\n")
 		fmt.Fprintf(os.Stderr, "  %s --enable-embeddings   Enable semantic search with embeddings\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "\nOptions:\n")
@@ -74,18 +78,26 @@ func main() {
 	flag.Parse()
 
 	// Validate flag combinations
-	if *forceRebuild && !*rebuildDB {
-		log.Fatal("ERROR: --force can only be used with --rebuilddb")
+	if *forceRebuild && !*rebuildDB && *rebuildUserDB == "" {
+		log.Fatal("ERROR: --force can only be used with --rebuilddb or --rebuild-userdb")
 	}
 	if *rebuildDB && *httpMode {
 		log.Fatal("ERROR: --rebuilddb and --http cannot be used together")
+	}
+	if *rebuildUserDB != "" && *httpMode {
+		log.Fatal("ERROR: --rebuild-userdb and --http cannot be used together")
+	}
+	if *rebuildDB && *rebuildUserDB != "" {
+		log.Fatal("ERROR: --rebuilddb and --rebuild-userdb cannot be used together")
 	}
 	if *withAccessingUser && *httpMode {
 		log.Fatal("ERROR: --with-accessinguser can only be used with stdio mode (not --http)")
 	}
 
 	if *rebuildDB {
-		log.Println("Starting Medha database rebuild...")
+		log.Println("Starting Medha system database rebuild...")
+	} else if *rebuildUserDB != "" {
+		log.Println("Starting Medha per-user database rebuild...")
 	} else {
 		log.Println("Starting Medha MCP Server...")
 	}
@@ -166,6 +178,12 @@ func main() {
 		return
 	}
 
+	// REBUILD USER DB MODE: Run per-user database rebuild and exit
+	if *rebuildUserDB != "" {
+		runRebuildUserDBMode(cfg, db, *rebuildUserDB, *forceRebuild)
+		return
+	}
+
 	// SERVER MODE: Detect mode and run appropriately
 	if *httpMode {
 		log.Println("Running in HTTP server mode")
@@ -239,6 +257,130 @@ func runRebuildMode(cfg *config.Config, db *gorm.DB, force bool) {
 
 	// Print results
 	log.Println("Rebuild completed successfully")
+	log.Printf("  Memories processed: %d", result.MemoriesProcessed)
+	log.Printf("  Memories created:   %d", result.MemoriesCreated)
+	log.Printf("  Memories skipped:   %d", result.MemoriesSkipped)
+	log.Printf("  Associations:       %d", result.AssociationsCreated)
+
+	if len(result.Errors) > 0 {
+		log.Printf("  Warnings: %d", len(result.Errors))
+		for _, e := range result.Errors {
+			log.Printf("    - %s", e)
+		}
+	}
+}
+
+// runRebuildUserDBMode rebuilds the per-user database for specified target
+// target can be: "all" (all users), username, or filesystem path
+func runRebuildUserDBMode(cfg *config.Config, db *gorm.DB, target string, force bool) {
+	opts := rebuild.Options{Force: force}
+
+	if target == "all" {
+		// Rebuild all users' per-user databases
+		var repos []database.MedhaGitRepo
+		if err := db.Find(&repos).Error; err != nil {
+			log.Fatalf("Failed to query repositories: %v", err)
+		}
+
+		if len(repos) == 0 {
+			log.Fatal("No repositories found in system database")
+		}
+
+		log.Printf("Found %d repositories to rebuild", len(repos))
+
+		var successCount, failCount int
+		for _, repo := range repos {
+			log.Printf("Rebuilding per-user database for: %s", repo.RepoPath)
+
+			if _, err := os.Stat(repo.RepoPath); os.IsNotExist(err) {
+				log.Printf("  WARNING: Repository path does not exist, skipping: %s", repo.RepoPath)
+				failCount++
+				continue
+			}
+
+			userDB, err := database.OpenUserDB(repo.RepoPath)
+			if err != nil {
+				log.Printf("  ERROR: Failed to open per-user database: %v", err)
+				failCount++
+				continue
+			}
+
+			result, err := rebuild.RebuildUserIndex(userDB, repo.RepoPath, opts)
+
+			// Close the database
+			sqlDB, _ := userDB.DB()
+			sqlDB.Close()
+
+			if err != nil {
+				log.Printf("  ERROR: Rebuild failed: %v", err)
+				failCount++
+				continue
+			}
+
+			log.Printf("  ✓ Processed: %d, Created: %d, Skipped: %d, Associations: %d",
+				result.MemoriesProcessed, result.MemoriesCreated,
+				result.MemoriesSkipped, result.AssociationsCreated)
+			successCount++
+		}
+
+		log.Printf("\nRebuild completed: %d succeeded, %d failed", successCount, failCount)
+		return
+	}
+
+	// Single target: could be username or path
+	var repoPath string
+
+	// Check if target is a path (absolute or relative)
+	if filepath.IsAbs(target) || target == "." || target == ".." || 
+		(len(target) > 0 && (target[0] == '.' || target[0] == '/')) {
+		// Treat as path
+		absPath, err := filepath.Abs(target)
+		if err != nil {
+			log.Fatalf("Invalid path: %v", err)
+		}
+		repoPath = absPath
+	} else {
+		// Treat as username - lookup in database
+		var repo database.MedhaGitRepo
+		err := db.Joins("JOIN medha_users ON medha_users.id = medha_git_repos.user_id").
+			Where("medha_users.username = ?", target).
+			First(&repo).Error
+
+		if err != nil {
+			// Also try partial match on repo path
+			err = db.Where("repo_path LIKE ?", "%"+target+"%").First(&repo).Error
+			if err != nil {
+				log.Fatalf("No repository found for user or path: %s", target)
+			}
+		}
+		repoPath = repo.RepoPath
+	}
+
+	// Verify path exists
+	if _, err := os.Stat(repoPath); os.IsNotExist(err) {
+		log.Fatalf("Repository path does not exist: %s", repoPath)
+	}
+
+	log.Printf("Rebuilding per-user database at: %s", repoPath)
+
+	// Open per-user database
+	userDB, err := database.OpenUserDB(repoPath)
+	if err != nil {
+		log.Fatalf("Failed to open per-user database: %v", err)
+	}
+	defer func() {
+		sqlDB, _ := userDB.DB()
+		sqlDB.Close()
+	}()
+
+	// Run rebuild
+	result, err := rebuild.RebuildUserIndex(userDB, repoPath, opts)
+	if err != nil {
+		log.Fatalf("Rebuild failed: %v", err)
+	}
+
+	// Print results
+	log.Println("Per-user database rebuild completed successfully")
 	log.Printf("  Memories processed: %d", result.MemoriesProcessed)
 	log.Printf("  Memories created:   %d", result.MemoriesCreated)
 	log.Printf("  Memories skipped:   %d", result.MemoriesSkipped)
