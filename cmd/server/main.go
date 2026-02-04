@@ -40,6 +40,12 @@ func main() {
 	dbDSN := flag.String("db-dsn", "", "Database DSN (for postgres)")
 	configPath := flag.String("config", "", "Path to config file")
 	port := flag.Int("port", 0, "Server port (HTTP mode only)")
+	
+	// Embedding flags
+	enableEmbeddings := flag.Bool("enable-embeddings", false, "Enable semantic search with embeddings")
+	embeddingURL := flag.String("embedding-url", "", "Embedding API base URL")
+	embeddingModel := flag.String("embedding-model", "", "Embedding model name")
+	embeddingKey := flag.String("embedding-key", "", "Embedding API key (alternative to env var)")
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Medha MCP Server\n\n")
@@ -51,6 +57,8 @@ func main() {
 		fmt.Fprintf(os.Stderr, "\nDatabase Rebuild:\n")
 		fmt.Fprintf(os.Stderr, "  %s --rebuilddb           Rebuild database index from git repository\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "  %s --rebuilddb --force   Rebuild and overwrite existing data\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "\nEmbeddings:\n")
+		fmt.Fprintf(os.Stderr, "  %s --enable-embeddings   Enable semantic search with embeddings\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "\nOptions:\n")
 		flag.PrintDefaults()
 		fmt.Fprintf(os.Stderr, "\nEnvironment Variables:\n")
@@ -60,6 +68,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "  PORT               Server port (HTTP mode only)\n")
 		fmt.Fprintf(os.Stderr, "  ENCRYPTION_KEY     Encryption key for PAT tokens\n")
 		fmt.Fprintf(os.Stderr, "  ACCESSING_USER     Username (required with --with-accessinguser)\n")
+		fmt.Fprintf(os.Stderr, "  OPENAI_API_KEY     OpenAI API key (required when embeddings enabled)\n")
 	}
 
 	flag.Parse()
@@ -110,6 +119,9 @@ func main() {
 
 	// Apply CLI flag overrides (highest priority)
 	applyCLIOverrides(cfg, *dbType, *dbPath, *dbDSN, *port)
+
+	// Apply embedding CLI overrides
+	applyEmbeddingCLIOverrides(cfg, *enableEmbeddings, *embeddingURL, *embeddingModel, *embeddingKey)
 
 	// Force local auth (always use local authentication)
 	cfg.Auth.Type = "local"
@@ -330,6 +342,30 @@ func getEnv(names ...string) string {
 		}
 	}
 	return ""
+}
+
+// applyEmbeddingCLIOverrides applies embedding-related CLI flag overrides
+func applyEmbeddingCLIOverrides(cfg *config.Config, enableEmbeddings bool, embeddingURL, embeddingModel, embeddingKey string) {
+	if enableEmbeddings {
+		cfg.Embeddings.Enabled = true
+		log.Printf("Embeddings enabled from CLI")
+	}
+
+	if embeddingURL != "" {
+		cfg.Embeddings.BaseURL = embeddingURL
+		log.Printf("Embedding URL from CLI")
+	}
+
+	if embeddingModel != "" {
+		cfg.Embeddings.Model = embeddingModel
+		log.Printf("Embedding model from CLI: %s", embeddingModel)
+	}
+
+	if embeddingKey != "" {
+		// Set the API key directly in the environment for validation
+		os.Setenv(cfg.Embeddings.APIKeyEnv, embeddingKey)
+		log.Printf("Embedding API key from CLI (hidden)")
+	}
 }
 
 // runStdioMode runs the server in stdio mode for Cursor MCP
