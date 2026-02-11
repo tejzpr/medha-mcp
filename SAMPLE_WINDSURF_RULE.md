@@ -1,7 +1,5 @@
-Medha - Complete MCP Tools Guide
 ---
-description: Proactively manage information using Medha MCP server
-alwaysApply: true
+trigger: model_decision
 ---
 
 # Medha Auto-Management Protocol
